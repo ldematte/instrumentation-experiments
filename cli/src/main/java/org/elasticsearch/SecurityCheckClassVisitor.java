@@ -7,8 +7,10 @@ import org.objectweb.asm.Type;
 import org.objectweb.asm.util.Textifier;
 import org.objectweb.asm.util.TraceMethodVisitor;
 
+import java.lang.constant.ClassDesc;
 import java.lang.reflect.InaccessibleObjectException;
 import java.lang.reflect.Modifier;
+import java.nio.file.Path;
 import java.security.Permission;
 import java.util.*;
 
@@ -16,25 +18,30 @@ import static org.objectweb.asm.Opcodes.*;
 
 class SecurityCheckClassVisitor extends ClassVisitor {
 
+    static final String SECURITY_MANAGER_INTERNAL_NAME = "java/lang/SecurityManager";
+    static final Set<String> excludedClasses = Set.of(SECURITY_MANAGER_INTERNAL_NAME);
+
     record CallerInfo(
             String moduleName,
             String source,
             int line,
             String className,
             String methodName,
+            boolean isPublic,
             String permissionType,
             String runtimePermissionType
     ) {}
 
-    private final Set<String> methodsToReport;
     private final Map<String, List<CallerInfo>> callerInfoByMethod;
     private String className;
+    private int classAccess;
     private String source;
     private String moduleName;
+    private String sourcePath;
+    private Set<String> moduleExports;
 
-    protected SecurityCheckClassVisitor(Set<String> methodsToReport, Map<String, List<CallerInfo>> callerInfoByMethod) {
+    protected SecurityCheckClassVisitor(Map<String, List<CallerInfo>> callerInfoByMethod) {
         super(ASM9);
-        this.methodsToReport = methodsToReport;
         this.callerInfoByMethod = callerInfoByMethod;
     }
 
@@ -42,6 +49,7 @@ class SecurityCheckClassVisitor extends ClassVisitor {
     public void visit(int version, int access, String name, String signature, String superName, String[] interfaces) {
         super.visit(version, access, name, signature, superName, interfaces);
         this.className = name;
+        this.classAccess = access;
     }
 
     @Override
@@ -58,7 +66,7 @@ class SecurityCheckClassVisitor extends ClassVisitor {
             String signature,
             String[] exceptions
     ) {
-        if (CliMain.excludedClasses.contains(this.className)) {
+        if (excludedClasses.contains(this.className)) {
             return super.visitMethod(access, name, descriptor, signature, exceptions);
         }
         return new SecurityCheckMethodVisitor(
@@ -66,12 +74,18 @@ class SecurityCheckClassVisitor extends ClassVisitor {
                         super.visitMethod(access, name, descriptor, signature, exceptions),
                         new Textifier()
                 ),
-                name
+                name,
+                access
         );
     }
 
-    public void setCurrentModule(String moduleName) {
+    public void setCurrentModule(String moduleName, Set<String> moduleExports) {
         this.moduleName = moduleName;
+        this.moduleExports = moduleExports;
+    }
+
+    public void setCurrentSourcePath(String path) {
+        this.sourcePath = path;
     }
 
     private class SecurityCheckMethodVisitor extends MethodVisitor {
@@ -82,12 +96,16 @@ class SecurityCheckClassVisitor extends ClassVisitor {
         private final TraceMethodVisitor traceMethodVisitor;
         private String permissionType;
         private String runtimePermissionType;
+        private final int methodAccess;
 
-        protected SecurityCheckMethodVisitor(TraceMethodVisitor mv, String methodName) {
+        protected SecurityCheckMethodVisitor(TraceMethodVisitor mv, String methodName, int methodAccess) {
             super(ASM9, mv);
             this.methodName = methodName;
             this.traceMethodVisitor = mv;
+            this.methodAccess = methodAccess;
         }
+
+        private static final Set<String> KNOWN_PERMISSIONS = Set.of("jdk.vm.ci.services.JVMCIPermission");
 
         @Override
         public void visitTypeInsn(int opcode, String type) {
@@ -95,13 +113,17 @@ class SecurityCheckClassVisitor extends ClassVisitor {
             if (opcode == NEW) {
                 if (type.endsWith("Permission")) {
                     var objectType = Type.getObjectType(type);
-                    try {
-                        var clazz = Class.forName(objectType.getClassName());
-                        if (Permission.class.isAssignableFrom(clazz)) {
-                            permissionType = type;
+                    if (KNOWN_PERMISSIONS.contains(objectType.getClassName())) {
+                        permissionType = type;
+                    } else {
+                        try {
+                            var clazz = Class.forName(objectType.getClassName());
+                            if (Permission.class.isAssignableFrom(clazz)) {
+                                permissionType = type;
+                            }
+                        } catch (ClassNotFoundException e) {
+                            e.printStackTrace();
                         }
-                    } catch (ClassNotFoundException e) {
-                        e.printStackTrace();
                     }
                 }
             }
@@ -112,6 +134,9 @@ class SecurityCheckClassVisitor extends ClassVisitor {
             super.visitFieldInsn(opcode, owner, name, descriptor);
             if (opcode == GETSTATIC && descriptor.endsWith("Permission;")) {
                 var permissionType = Type.getType(descriptor);
+                if (permissionType.getSort() == Type.ARRAY) {
+                    permissionType = permissionType.getElementType();
+                }
                 try {
                     var clazz = Class.forName(permissionType.getClassName());
                     if (Permission.class.isAssignableFrom(clazz)) {
@@ -162,28 +187,48 @@ class SecurityCheckClassVisitor extends ClassVisitor {
                     opcode == INVOKESTATIC ||
                     opcode == INVOKEINTERFACE ||
                     opcode == INVOKEDYNAMIC) {
-                var method = owner + "#" + name;
 
-                if (methodsToReport.contains(method)) {
-                    var callers = callerInfoByMethod.computeIfAbsent(method, _ -> new ArrayList<>());
-                    callers.add(new CallerInfo(moduleName, source, line, className, methodName, null, null));
-                }
-                if (name.equals("checkPermission")) {
-                    this.callsTarget = true;
-                    var callers = callerInfoByMethod.computeIfAbsent(name, _ -> new ArrayList<>());
-                    callers.add(new CallerInfo(
-                            moduleName,
-                            source,
-                            line,
-                            className,
-                            methodName,
-                            permissionType,
-                            runtimePermissionType
-                    ));
-                    this.permissionType = null;
-                    this.runtimePermissionType = null;
+                if (SECURITY_MANAGER_INTERNAL_NAME.equals(owner)) {
+                    boolean callerIsPublic =
+                            (methodAccess & ACC_PUBLIC) != 0 &&
+                                    (classAccess & ACC_PUBLIC) != 0 &&
+                                    moduleExports.contains(getPackageName(className));
+
+                    if (name.equals("checkPermission")) {
+                        this.callsTarget = true;
+                        var callers = callerInfoByMethod.computeIfAbsent(name, _ -> new ArrayList<>());
+                        callers.add(new CallerInfo(
+                                moduleName,
+                                Path.of(sourcePath, source).toString(),
+                                line,
+                                className,
+                                methodName,
+                                callerIsPublic,
+                                permissionType,
+                                runtimePermissionType
+                        ));
+                        this.permissionType = null;
+                        this.runtimePermissionType = null;
+                    } else if (name.startsWith("check")) {
+                        // Non-generic methods (named methods that which already tell us the permission type)
+                        var callers = callerInfoByMethod.computeIfAbsent(name, _ -> new ArrayList<>());
+                        callers.add(new CallerInfo(
+                                moduleName,
+                                Path.of(sourcePath, source).toString(),
+                                line,
+                                className,
+                                methodName,
+                                callerIsPublic,
+                                null,
+                                null
+                        ));
+                    }
                 }
             }
+        }
+
+        private String getPackageName(String className) {
+            return ClassDesc.ofInternalName(className).packageName();
         }
 
         @Override

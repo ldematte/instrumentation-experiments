@@ -4,15 +4,18 @@ import org.objectweb.asm.ClassVisitor;
 import org.objectweb.asm.Label;
 import org.objectweb.asm.MethodVisitor;
 
+import java.lang.constant.ClassDesc;
+import java.util.Set;
+
 import static org.objectweb.asm.Opcodes.*;
 
 class FindUsagesClassVisitor extends ClassVisitor {
 
     private int classAccess;
 
-    record Callee(String className, String methodName, String methodDescriptor) {}
+    record MethodDescriptor(String className, String methodName, String methodDescriptor) {}
 
-    record Caller(
+    record EntryPoint(
             String moduleName,
             String source,
             int line,
@@ -27,13 +30,16 @@ class FindUsagesClassVisitor extends ClassVisitor {
                     boolean isPublic);
     }
 
-    private final Callee methodToFind;
+    private final Set<String> moduleExports;
+    private final MethodDescriptor methodToFind;
     private final CallerConsumer callers;
     private String className;
     private String source;
 
-    protected FindUsagesClassVisitor(Callee methodToFind, CallerConsumer callers) {
+    protected FindUsagesClassVisitor(Set<String> moduleExports,
+                                     MethodDescriptor methodToFind, CallerConsumer callers) {
         super(ASM9);
+        this.moduleExports = moduleExports;
         this.methodToFind = methodToFind;
         this.callers = callers;
     }
@@ -96,11 +102,15 @@ class FindUsagesClassVisitor extends ClassVisitor {
                         boolean isPublic =
                                 (methodAccess & ACC_PUBLIC) != 0 &&
                                 (classAccess & ACC_PUBLIC) != 0 &&
-                                (classAccess & ACC_ABSTRACT) == 0;
+                                moduleExports.contains(getPackageName(className));
                         callers.accept(source, line, className, methodName, methodDescriptor, isPublic);
                     }
                 }
             }
+        }
+
+        private String getPackageName(String className) {
+            return ClassDesc.ofInternalName(className).packageName();
         }
 
         @Override
