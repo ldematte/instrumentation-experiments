@@ -16,7 +16,7 @@ public class InstrumentationAgent {
         transformClass("java.lang.Shutdown", instrumentation, "exit");
         // sun.nio.fs.UnixNativeDispatcher
         // private static native int open0(long pathAddress, int flags, int mode) throws UnixException;
-        transformNativeClass("sun.nio.fs.UnixNativeDispatcher", instrumentation, "open0", "(JII)I");
+        //transformNativeClass("sun.nio.fs.UnixNativeDispatcher", instrumentation, "open0", "(JII)I");
         System.out.println("[Agent] completed");
     }
 
