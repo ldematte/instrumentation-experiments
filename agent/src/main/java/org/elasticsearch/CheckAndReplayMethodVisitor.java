@@ -7,7 +7,7 @@ import java.util.List;
 
 import static org.objectweb.asm.Opcodes.ASM7;
 
-class CheckingMethodVisitor extends MethodVisitor {
+class CheckAndReplayMethodVisitor extends MethodVisitor {
 
     private final MethodVisitor matchingVisitor;
     private final MethodVisitor nonMatchingVisitor;
@@ -17,15 +17,15 @@ class CheckingMethodVisitor extends MethodVisitor {
     private int cursor = 0;
     private boolean failing;
 
-    CheckingMethodVisitor(MethodVisitor matchingVisitor, MethodVisitor nonMatchingVisitor,
-                                 List<String> instructionsToMatch) {
+    CheckAndReplayMethodVisitor(MethodVisitor matchingVisitor, MethodVisitor nonMatchingVisitor,
+                                List<String> instructionsToMatch) {
         this(new DeferredMethodVisitor(), matchingVisitor, nonMatchingVisitor, instructionsToMatch);
     }
 
-    private CheckingMethodVisitor(DeferredMethodVisitor mv,
-                                  MethodVisitor matchingVisitor,
-                                  MethodVisitor nonMatchingVisitor,
-                                  List<String> instructionsToMatch) {
+    private CheckAndReplayMethodVisitor(DeferredMethodVisitor mv,
+                                        MethodVisitor matchingVisitor,
+                                        MethodVisitor nonMatchingVisitor,
+                                        List<String> instructionsToMatch) {
         super(ASM7, mv);
         this.deferredMethodVisitor = mv;
         this.matchingVisitor = matchingVisitor;

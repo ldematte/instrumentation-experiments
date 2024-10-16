@@ -29,7 +29,11 @@ public class EntitlementCheckTransformer implements ClassFileTransformer {
             try {
                 var rewriter = new ClassRewriter(classfileBuffer);
                 System.out.println("[Agent] Rewriter created");
-                return rewriter.instrumentMethod(methodName);
+                var instrumentedClassBytes = rewriter.checkAndInstrumentMethod(methodName);
+                if (instrumentedClassBytes != null) {
+                    return instrumentedClassBytes;
+                }
+                //return rewriter.instrumentMethod(methodName);
             } catch (Throwable t) {
                 System.out.println("[Agent] error " + t);
                 t.printStackTrace();
