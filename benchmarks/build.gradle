@@ -18,6 +18,12 @@ dependencies {
     testImplementation 'org.junit.jupiter:junit-jupiter'
 }
 
+jmh {
+    warmupIterations = 2
+    iterations = 5
+    fork = 1
+}
+
 test {
     useJUnitPlatform()
 }

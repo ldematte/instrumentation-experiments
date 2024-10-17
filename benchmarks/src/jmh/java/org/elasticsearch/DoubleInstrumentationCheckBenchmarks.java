@@ -16,7 +16,9 @@ public class DoubleInstrumentationCheckBenchmarks {
         }
     }
 
-    byte[] loadClassBytecodes(Class<?> clazz) throws IOException {
+    private static final byte[] originalBytecodes = loadClassBytecodes(ClassToInstrument.class);
+
+    static byte[] loadClassBytecodes(Class<?> clazz) {
         String internalName = Type.getInternalName(clazz);
         String fileName = "/" + internalName + ".class";
 
@@ -26,67 +28,69 @@ public class DoubleInstrumentationCheckBenchmarks {
                 throw new IllegalStateException("Classfile not found in jar: " + fileName);
             }
             originalBytecodes = classStream.readAllBytes();
+        } catch (IOException e) {
+            throw new RuntimeException(e);
         }
         return originalBytecodes;
     }
 
     @Benchmark
-    public void noCheck() throws IOException {
-        var classRewriter = new ClassRewriter(loadClassBytecodes(ClassToInstrument.class));
+    public byte[] noCheck() {
+        var classRewriter = new ClassRewriter(originalBytecodes);
+        return classRewriter.instrumentMethodNoChecks("methodToInstrument");
+    }
+
+    @Benchmark
+    public byte[] noCheckCalledTwice() {
+        var classRewriter = new ClassRewriter(originalBytecodes);
         var instrumentedBytes = classRewriter.instrumentMethodNoChecks("methodToInstrument");
-    }
-
-    @Benchmark
-    public void noCheckCalledTwice() throws IOException {
-        var classRewriter = new ClassRewriter(loadClassBytecodes(ClassToInstrument.class));
-        var instrumentedBytes = classRewriter.instrumentMethodNoChecks("methodToInstrument");
 
         classRewriter = new ClassRewriter(instrumentedBytes);
-        var reInstrumentedBytes = classRewriter.instrumentMethodNoChecks("methodToInstrument");
+        return classRewriter.instrumentMethodNoChecks("methodToInstrument");
     }
 
     @Benchmark
-    public void checkWithAnnotation() throws IOException {
-        var classRewriter = new ClassRewriter(loadClassBytecodes(ClassToInstrument.class));
-        var instrumentedBytes = classRewriter.instrumentMethodWithAnnotation("methodToInstrument");
+    public byte[] checkWithAnnotation() {
+        var classRewriter = new ClassRewriter(originalBytecodes);
+        return classRewriter.instrumentMethodWithAnnotation("methodToInstrument");
     }
 
     @Benchmark
-    public void checkWithAnnotationCalledTwice() throws IOException {
-        var classRewriter = new ClassRewriter(loadClassBytecodes(ClassToInstrument.class));
+    public byte[] checkWithAnnotationCalledTwice() {
+        var classRewriter = new ClassRewriter(originalBytecodes);
         var instrumentedBytes = classRewriter.instrumentMethodWithAnnotation("methodToInstrument");
 
         classRewriter = new ClassRewriter(instrumentedBytes);
-        var reInstrumentedBytes = classRewriter.instrumentMethodWithAnnotation("methodToInstrument");
+        return classRewriter.instrumentMethodWithAnnotation("methodToInstrument");
     }
 
     @Benchmark
-    public void completeCheckWithTwoPasses() throws IOException {
-        var classRewriter = new ClassRewriter(loadClassBytecodes(ClassToInstrument.class));
-        var instrumentedBytes = classRewriter.checkAndInstrumentMethodTwoPasses("methodToInstrument");
+    public byte[] completeCheckWithTwoPasses() {
+        var classRewriter = new ClassRewriter(originalBytecodes);
+        return classRewriter.checkAndInstrumentMethodTwoPasses("methodToInstrument");
     }
 
     @Benchmark
-    public void completeCheckWithTwoPassesCalledTwice() throws IOException {
-        var classRewriter = new ClassRewriter(loadClassBytecodes(ClassToInstrument.class));
+    public byte[] completeCheckWithTwoPassesCalledTwice() {
+        var classRewriter = new ClassRewriter(originalBytecodes);
         var instrumentedBytes = classRewriter.checkAndInstrumentMethodTwoPasses("methodToInstrument");
 
         classRewriter = new ClassRewriter(instrumentedBytes);
-        var reInstrumentedBytes = classRewriter.checkAndInstrumentMethodTwoPasses("methodToInstrument");
+        return classRewriter.checkAndInstrumentMethodTwoPasses("methodToInstrument");
     }
 
     @Benchmark
-    public void completeCheckWithOnePass() throws IOException {
-        var classRewriter = new ClassRewriter(loadClassBytecodes(ClassToInstrument.class));
-        var instrumentedBytes = classRewriter.checkAndInstrumentMethodSinglePass("methodToInstrument");
+    public byte[] completeCheckWithOnePass() {
+        var classRewriter = new ClassRewriter(originalBytecodes);
+        return classRewriter.checkAndInstrumentMethodSinglePass("methodToInstrument");
     }
 
     @Benchmark
-    public void completeCheckWithOnePassCalledTwice() throws IOException {
-        var classRewriter = new ClassRewriter(loadClassBytecodes(ClassToInstrument.class));
+    public byte[] completeCheckWithOnePassCalledTwice() {
+        var classRewriter = new ClassRewriter(originalBytecodes);
         var instrumentedBytes = classRewriter.checkAndInstrumentMethodSinglePass("methodToInstrument");
 
         classRewriter = new ClassRewriter(instrumentedBytes);
-        var reInstrumentedBytes = classRewriter.checkAndInstrumentMethodSinglePass("methodToInstrument");
+        return classRewriter.checkAndInstrumentMethodSinglePass("methodToInstrument");
     }
 }

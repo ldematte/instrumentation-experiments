@@ -18,13 +18,13 @@ public class ClassRewriter {
         writer = new ClassWriter(reader, ClassWriter.COMPUTE_FRAMES | ClassWriter.COMPUTE_MAXS);
     }
 
-    public byte[] checkAndInstrumentMethodSinglePass(String methodName) {
+    public byte[] instrumentMethodNoChecks(String methodName) {
         //System.out.println("[Agent] Calling ASM instrumentMethod");
         reader.accept(new InstrumentMethodClassVisitor(writer, methodName), 0);
         return writer.toByteArray();
     }
 
-    public byte[] instrumentMethodNoChecks(String methodName) {
+    public byte[] checkAndInstrumentMethodSinglePass(String methodName) {
         //System.out.println("[Agent] Calling ASM instrumentMethod");
         reader.accept(new SinglePassCheckAndInstrumentMethodClassVisitor(writer, methodName), 0);
         return writer.toByteArray();
