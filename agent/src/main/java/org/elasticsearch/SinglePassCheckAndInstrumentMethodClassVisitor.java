@@ -12,14 +12,14 @@ import java.util.function.BooleanSupplier;
 
 import static org.objectweb.asm.Opcodes.*;
 
-class SinglePassCheckAndInstrumentMethodAdapter extends ClassVisitor {
+class SinglePassCheckAndInstrumentMethodClassVisitor extends ClassVisitor {
 
     private final String methodName;
     private final BooleanSupplier checkMethod;
 
     private final TraceClassVisitor tracer;
 
-    public SinglePassCheckAndInstrumentMethodAdapter(ClassVisitor cv, String methodName, BooleanSupplier checkMethod) {
+    public SinglePassCheckAndInstrumentMethodClassVisitor(ClassVisitor cv, String methodName, BooleanSupplier checkMethod) {
         super(ASM7, cv);
         this.methodName = methodName;
         this.checkMethod = checkMethod;
@@ -52,10 +52,10 @@ class SinglePassCheckAndInstrumentMethodAdapter extends ClassVisitor {
 
             return new CheckAndReplayMethodVisitor(
                     new InstrumentingMethodVisitor(
-                            new TraceMethodVisitor(methodVisitor, SinglePassCheckAndInstrumentMethodAdapter.this.tracer.p)
+                            new TraceMethodVisitor(methodVisitor, SinglePassCheckAndInstrumentMethodClassVisitor.this.tracer.p)
                     ),
                     new MethodVisitor(ASM7,
-                            new TraceMethodVisitor(methodVisitor, SinglePassCheckAndInstrumentMethodAdapter.this.tracer.p)
+                            new TraceMethodVisitor(methodVisitor, SinglePassCheckAndInstrumentMethodClassVisitor.this.tracer.p)
                     ) {
                     },
                     recordingVisitor.getRecordedInstructions()

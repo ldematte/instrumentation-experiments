@@ -8,8 +8,6 @@ import static org.objectweb.asm.Opcodes.*;
 
 public class ClassRewriter {
 
-    public static final String NATIVE_PREFIX = "$$Entitled$$";
-
     ClassReader reader;
     ClassWriter writer;
 
@@ -22,7 +20,7 @@ public class ClassRewriter {
 
     public byte[] instrumentMethod(String methodName) {
         System.out.println("[Agent] Calling ASM instrumentMethod");
-        reader.accept(new SinglePassCheckAndInstrumentMethodAdapter(writer, methodName, null), 0);
+        reader.accept(new SinglePassCheckAndInstrumentMethodClassVisitor(writer, methodName, null), 0);
         return writer.toByteArray();
     }
 
@@ -35,6 +33,12 @@ public class ClassRewriter {
             return writer.toByteArray();
         }
         return null;
+    }
+
+    public byte[] instrumentMethodWithAnnotation(String methodName) {
+        System.out.println("[Agent] Calling ASM instrumentMethod");
+        reader.accept(new InstrumentAndAnnotateMethodClassVisitor(writer, methodName), 0);
+        return writer.toByteArray();
     }
 
     public byte[] instrumentNativeMethod(String methodName, String descriptor) {
