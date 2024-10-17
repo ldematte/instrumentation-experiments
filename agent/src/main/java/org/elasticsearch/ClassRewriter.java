@@ -12,20 +12,26 @@ public class ClassRewriter {
     ClassWriter writer;
 
     public ClassRewriter(byte[] contents) {
-        System.out.println("[Agent] Calling ASM");
+        //System.out.println("[Agent] Calling ASM");
 
         reader = new ClassReader(contents);
         writer = new ClassWriter(reader, ClassWriter.COMPUTE_FRAMES | ClassWriter.COMPUTE_MAXS);
     }
 
-    public byte[] instrumentMethod(String methodName) {
-        System.out.println("[Agent] Calling ASM instrumentMethod");
+    public byte[] checkAndInstrumentMethodSinglePass(String methodName) {
+        //System.out.println("[Agent] Calling ASM instrumentMethod");
+        reader.accept(new InstrumentMethodClassVisitor(writer, methodName), 0);
+        return writer.toByteArray();
+    }
+
+    public byte[] instrumentMethodNoChecks(String methodName) {
+        //System.out.println("[Agent] Calling ASM instrumentMethod");
         reader.accept(new SinglePassCheckAndInstrumentMethodClassVisitor(writer, methodName), 0);
         return writer.toByteArray();
     }
 
-    public byte[] checkAndInstrumentMethod(String methodName) {
-        System.out.println("[Agent] Calling ASM instrumentMethod");
+    public byte[] checkAndInstrumentMethodTwoPasses(String methodName) {
+        //System.out.println("[Agent] Calling ASM instrumentMethod");
         var checker = new AlreadyInstrumentedMethodChecker(methodName);
         reader.accept(checker, 0);
         if (checker.instrumentationNeeded) {
@@ -36,13 +42,13 @@ public class ClassRewriter {
     }
 
     public byte[] instrumentMethodWithAnnotation(String methodName) {
-        System.out.println("[Agent] Calling ASM instrumentMethod");
+        //System.out.println("[Agent] Calling ASM instrumentMethod");
         reader.accept(new InstrumentAndAnnotateMethodClassVisitor(writer, methodName), 0);
         return writer.toByteArray();
     }
 
     public byte[] instrumentNativeMethod(String methodName, String descriptor) {
-        System.out.println("[Agent] Calling ASM instrumentNativeMethod");
+        //System.out.println("[Agent] Calling ASM instrumentNativeMethod");
         reader.accept(new RemoveMethodAdapter(writer, methodName, descriptor), 0);
 
 //        writer.visitMethod(ACC_PRIVATE | ACC_STATIC | ACC_NATIVE, NATIVE_PREFIX + methodName,

@@ -1,0 +1,23 @@
+plugins {
+    id 'java'
+    id "me.champeau.jmh" version "0.7.2"
+}
+
+group = 'org.elasticsearch'
+version = '1.0-SNAPSHOT'
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    implementation(project(':agent'))
+    jmh 'org.ow2.asm:asm:9.7'
+    jmh 'org.ow2.asm:asm-util:9.7'
+    testImplementation platform('org.junit:junit-bom:5.10.0')
+    testImplementation 'org.junit.jupiter:junit-jupiter'
+}
+
+test {
+    useJUnitPlatform()
+}

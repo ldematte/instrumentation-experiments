@@ -1,4 +1,5 @@
 rootProject.name = 'instrumentation-experiment'
 include 'agent'
 include 'cli'
+include 'benchmarks'
 
