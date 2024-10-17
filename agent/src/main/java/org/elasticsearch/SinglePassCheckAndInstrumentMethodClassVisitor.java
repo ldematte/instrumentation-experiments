@@ -1,28 +1,24 @@
 package org.elasticsearch;
 
 import org.objectweb.asm.ClassVisitor;
-import org.objectweb.asm.Label;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.util.TraceClassVisitor;
 import org.objectweb.asm.util.TraceMethodVisitor;
 
 import java.io.PrintWriter;
-import java.util.function.BooleanSupplier;
 
+import static org.elasticsearch.InstrumentMethodClassVisitor.InstrumentingMethodVisitor.prologue;
 import static org.objectweb.asm.Opcodes.*;
 
 class SinglePassCheckAndInstrumentMethodClassVisitor extends ClassVisitor {
 
     private final String methodName;
-    private final BooleanSupplier checkMethod;
-
     private final TraceClassVisitor tracer;
 
-    public SinglePassCheckAndInstrumentMethodClassVisitor(ClassVisitor cv, String methodName, BooleanSupplier checkMethod) {
+    public SinglePassCheckAndInstrumentMethodClassVisitor(ClassVisitor cv, String methodName) {
         super(ASM7, cv);
         this.methodName = methodName;
-        this.checkMethod = checkMethod;
         this.tracer = new TraceClassVisitor(cv, new PrintWriter(System.out));
     }
 
@@ -48,7 +44,7 @@ class SinglePassCheckAndInstrumentMethodClassVisitor extends ClassVisitor {
             System.out.println("[Agent] method " + name + " instrumenting: " + (methodVisitor == null ? "no" : "yes"));
 
             var recordingVisitor = new RecordingMethodVisitor();
-            InstrumentingMethodVisitor.prologue(recordingVisitor);
+            prologue(recordingVisitor);
 
             return new CheckAndReplayMethodVisitor(
                     new InstrumentingMethodVisitor(
@@ -82,27 +78,6 @@ class SinglePassCheckAndInstrumentMethodClassVisitor extends ClassVisitor {
             System.out.println("InstrumentingMethodVisitor#visitCode");
             mv.visitCode();
             prologue(this);
-        }
-
-        static void prologue(MethodVisitor mv) {
-            System.out.println("Prologue");
-            mv.visitMethodInsn(INVOKESTATIC, "org/elasticsearch/EntitlementChecker",
-                    "check", "()Z", false);
-            Label end = new Label();
-            mv.visitJumpInsn(IFNE, end);
-            //mv.visitFrame(F_SAME, 0, null, 0, null);
-            mv.visitTypeInsn(NEW, "java/lang/UnsupportedOperationException");
-            mv.visitInsn(DUP);
-            mv.visitMethodInsn(INVOKESPECIAL,
-                    "java/lang/UnsupportedOperationException", "<init>", "()V", false);
-            mv.visitInsn(ATHROW);
-            mv.visitLabel(end);
-        }
-
-        @Override
-        public void visitEnd() {
-            System.out.println("InstrumentingMethodVisitor#visitEnd");
-            mv.visitEnd();
         }
     }
 }

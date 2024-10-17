@@ -20,7 +20,7 @@ public class ClassRewriter {
 
     public byte[] instrumentMethod(String methodName) {
         System.out.println("[Agent] Calling ASM instrumentMethod");
-        reader.accept(new SinglePassCheckAndInstrumentMethodClassVisitor(writer, methodName, null), 0);
+        reader.accept(new SinglePassCheckAndInstrumentMethodClassVisitor(writer, methodName), 0);
         return writer.toByteArray();
     }
 
