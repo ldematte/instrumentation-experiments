@@ -30,12 +30,13 @@ public class EntitlementCheckTransformer implements ClassFileTransformer {
                 var rewriter = new ClassRewriter(classfileBuffer);
                 //System.out.println("[Agent] Rewriter created");
 
-                return rewriter.instrumentMethodWithAnnotation(methodName);
 
-//                var instrumentedClassBytes = rewriter.checkAndInstrumentMethod(methodName);
-//                if (instrumentedClassBytes != null) {
-//                    return instrumentedClassBytes;
-//                }
+                var instrumentedClassBytes =  rewriter.checkAndInstrumentMethodTwoPasses(methodName);
+                if (instrumentedClassBytes != null) {
+                    //System.out.println("Instrumented class");
+                    return instrumentedClassBytes;
+                }
+                //System.out.println("No need to instrument class");
 
                 //return rewriter.instrumentMethod(methodName);
             } catch (Throwable t) {

@@ -1,9 +1,10 @@
 package org.elasticsearch;
 
-import org.objectweb.asm.*;
-import org.objectweb.asm.util.Textifier;
+import org.objectweb.asm.Label;
+import org.objectweb.asm.MethodVisitor;
 
 import java.util.List;
+import java.util.function.Predicate;
 
 import static org.objectweb.asm.Opcodes.ASM7;
 
@@ -11,21 +12,23 @@ class CheckAndReplayMethodVisitor extends MethodVisitor {
 
     private final MethodVisitor matchingVisitor;
     private final MethodVisitor nonMatchingVisitor;
-    private final List<String> instructionsToMatch;
+    private final List<RecordingMethodVisitor.Instruction> instructionsToMatch;
     private final DeferredMethodVisitor deferredMethodVisitor;
 
     private int cursor = 0;
     private boolean failing;
 
+    private final LabelUtil labelUtil = new LabelUtil();
+
     CheckAndReplayMethodVisitor(MethodVisitor matchingVisitor, MethodVisitor nonMatchingVisitor,
-                                List<String> instructionsToMatch) {
+                                List<RecordingMethodVisitor.Instruction> instructionsToMatch) {
         this(new DeferredMethodVisitor(), matchingVisitor, nonMatchingVisitor, instructionsToMatch);
     }
 
     private CheckAndReplayMethodVisitor(DeferredMethodVisitor mv,
                                         MethodVisitor matchingVisitor,
                                         MethodVisitor nonMatchingVisitor,
-                                        List<String> instructionsToMatch) {
+                                        List<RecordingMethodVisitor.Instruction> instructionsToMatch) {
         super(ASM7, mv);
         this.deferredMethodVisitor = mv;
         this.matchingVisitor = matchingVisitor;
@@ -33,57 +36,60 @@ class CheckAndReplayMethodVisitor extends MethodVisitor {
         this.instructionsToMatch = instructionsToMatch;
     }
 
-    private void check(String instruction) {
-        if (failing || cursor >= instructionsToMatch.size()) {
-            return;
-        }
-        if (instruction.equals(instructionsToMatch.get(cursor)) == false) {
-            //System.out.println("Looking for [" + instructionsToMatch.get(cursor) + "] at cursor [" + cursor + "], got [" + instruction + "]");
-            failing = true;
-        } else {
-            //System.out.println("Matched " + instructionsToMatch.get(cursor) + "] at cursor [" + cursor + "] with [" + instruction + "]");
+    private void check(int opcode, Predicate<String> arg) {
+        var instructionToMatch = instructionsToMatch.get(cursor);
+        if (opcode == instructionToMatch.opcode() && arg.test(instructionToMatch.arg())) {
+            //System.out.println("Matched " + instructionToMatch + "] at cursor [" + cursor + "]");
             ++cursor;
+        } else {
+            //System.out.println("Looking for [" + instructionToMatch + "] at cursor [" + cursor + "], got [" + opcode + ":" + arg + "]");
+            failing = true;
         }
     }
 
     @Override
     public void visitJumpInsn(int opcode, Label label) {
         deferredMethodVisitor.visitJumpInsn(opcode, label);
-        var x = new Textifier();
-        x.visitJumpInsn(opcode, label);
-        check(x.text.getLast().toString());
+        if (failing || cursor >= instructionsToMatch.size()) {
+            return;
+        }
+        check(opcode, x -> labelUtil.getLabel(label).equals(x));
     }
 
     @Override
     public void visitTypeInsn(int opcode, String type) {
         deferredMethodVisitor.visitTypeInsn(opcode, type);
-        var x = new Textifier();
-        x.visitTypeInsn(opcode, type);
-        check(x.text.getLast().toString());
+        if (failing || cursor >= instructionsToMatch.size()) {
+            return;
+        }
+        check(opcode, x -> x.equals(type));
     }
 
     @Override
     public void visitInsn(int opcode) {
         deferredMethodVisitor.visitInsn(opcode);
-        var x = new Textifier();
-        x.visitInsn(opcode);
-        check(x.text.getLast().toString());
+        if (failing || cursor >= instructionsToMatch.size()) {
+            return;
+        }
+        check(opcode, _ -> true);
     }
 
     @Override
     public void visitLabel(Label label) {
         deferredMethodVisitor.visitLabel(label);
-        var x = new Textifier();
-        x.visitLabel(label);
-        check(x.text.getLast().toString());
+        if (failing || cursor >= instructionsToMatch.size()) {
+            return;
+        }
+        check(-1,  x -> labelUtil.getLabel(label).equals(x));
     }
 
     @Override
     public void visitMethodInsn(int opcode, String owner, String name, String descriptor, boolean isInterface) {
         deferredMethodVisitor.visitMethodInsn(opcode, owner, name, descriptor, isInterface);
-        var x = new Textifier();
-        x.visitMethodInsn(opcode, owner, name, descriptor, isInterface);
-        check(x.text.getLast().toString());
+        if (failing || cursor >= instructionsToMatch.size()) {
+            return;
+        }
+        check(opcode, x -> x.equals(owner + name + descriptor));
     }
 
     @Override
