@@ -24,11 +24,11 @@ class RecordingMethodVisitor extends MethodVisitor {
 
     public List<String> getRecordedInstructions() {
         var instructions = tracer.p.getText().stream().map(Object::toString).toList();
-        System.out.println("Recorded instructions: ");
-        for (int j = 0; j < instructions.size(); j++) {
-            var i = instructions.get(j);
-            System.out.print(j + ": " + i);
-        }
+//        System.out.println("Recorded instructions: ");
+//        for (int j = 0; j < instructions.size(); j++) {
+//            var i = instructions.get(j);
+//            System.out.print(j + ": " + i);
+//        }
         return instructions;
     }
 }

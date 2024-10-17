@@ -25,10 +25,10 @@ public class EntitlementCheckTransformer implements ClassFileTransformer {
     ) {
         //System.out.println("[Agent] transform called for " + className);
         if (className.equals(targetClassName)) { //&& loader.equals(targetClassLoader)) {
-            System.out.println("[Agent] Transforming class");
+            //System.out.println("[Agent] Transforming class");
             try {
                 var rewriter = new ClassRewriter(classfileBuffer);
-                System.out.println("[Agent] Rewriter created");
+                //System.out.println("[Agent] Rewriter created");
 
                 return rewriter.instrumentMethodWithAnnotation(methodName);
 

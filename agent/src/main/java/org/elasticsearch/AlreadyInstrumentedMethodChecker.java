@@ -21,7 +21,7 @@ public class AlreadyInstrumentedMethodChecker extends ClassVisitor {
                                      String signature,
                                      String[] exceptions) {
 
-        System.out.println("[Agent] AlreadyInstrumentedMethodChecker visiting method " + name);
+        //System.out.println("[Agent] AlreadyInstrumentedMethodChecker visiting method " + name);
         if (name.equals(methodName)) {
             var recordingVisitor = new RecordingMethodVisitor();
             InstrumentMethodClassVisitor.InstrumentingMethodVisitor.prologue(recordingVisitor);

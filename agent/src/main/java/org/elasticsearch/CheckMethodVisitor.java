@@ -27,10 +27,10 @@ class CheckMethodVisitor extends MethodVisitor {
 
     private void check(String instruction) {
         if (instruction.equals(instructionsToMatch.get(cursor)) == false) {
-            System.out.println("Looking for [" + instructionsToMatch.get(cursor) + "] at cursor [" + cursor + "], got [" + instruction + "]");
+            //System.out.println("Looking for [" + instructionsToMatch.get(cursor) + "] at cursor [" + cursor + "], got [" + instruction + "]");
             failing = true;
         } else {
-            System.out.println("Matched " + instructionsToMatch.get(cursor) + "] at cursor [" + cursor + "] with [" + instruction + "]");
+            //System.out.println("Matched " + instructionsToMatch.get(cursor) + "] at cursor [" + cursor + "] with [" + instruction + "]");
             ++cursor;
         }
     }

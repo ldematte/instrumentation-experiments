@@ -185,7 +185,7 @@ class DeferredMethodVisitor extends MethodVisitor {
 
     @Override
     public void visitEnd() {
-        System.out.println("Inspection visitEnd");
+        //System.out.println("Inspection visitEnd");
         for (var a : actions) {
             a.accept(mv);
         }

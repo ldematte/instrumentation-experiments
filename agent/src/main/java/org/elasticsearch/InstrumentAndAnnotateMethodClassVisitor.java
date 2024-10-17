@@ -12,21 +12,20 @@ import static org.objectweb.asm.Opcodes.*;
 class InstrumentAndAnnotateMethodClassVisitor extends ClassVisitor {
 
     private final String methodName;
-    private final TraceClassVisitor tracer;
+    //private final TraceClassVisitor tracer;
 
     public InstrumentAndAnnotateMethodClassVisitor(ClassVisitor cv, String methodName) {
         super(ASM7, cv);
         this.methodName = methodName;
-        this.tracer = new TraceClassVisitor(cv, new PrintWriter(System.out));
+        //this.tracer = new TraceClassVisitor(cv, new PrintWriter(System.out));
     }
 
-    @Override
-    public void visit(int version, int access, String name,
-                      String signature, String superName, String[] interfaces) {
-        System.out.println("[Agent] Calling visit");
-
-        cv.visit(version, access, name, signature, superName, interfaces);
-    }
+//    @Override
+//    public void visit(int version, int access, String name,
+//                      String signature, String superName, String[] interfaces) {
+//        System.out.println("[Agent] Calling visit");
+//        cv.visit(version, access, name, signature, superName, interfaces);
+//    }
 
     @Override
     public MethodVisitor visitMethod(int access,
@@ -35,24 +34,25 @@ class InstrumentAndAnnotateMethodClassVisitor extends ClassVisitor {
                                      String signature,
                                      String[] exceptions) {
 
-        System.out.println("[Agent] visiting method " + name);
+        //System.out.println("[Agent] visiting method " + name);
         if (name.equals(methodName)) {
             var methodVisitor = cv.visitMethod(access, name, desc, signature, exceptions);
 
-            System.out.println("[Agent] method " + name + " instrumenting: " + (methodVisitor == null ? "no" : "yes"));
+            //System.out.println("[Agent] method " + name + " instrumenting: " + (methodVisitor == null ? "no" : "yes"));
             return new InstrumentingMethodVisitor(
-                    new TraceMethodVisitor(methodVisitor, InstrumentAndAnnotateMethodClassVisitor.this.tracer.p)
+                    //new TraceMethodVisitor(methodVisitor, InstrumentAndAnnotateMethodClassVisitor.this.tracer.p)
+                    methodVisitor
             );
 
         }
         return cv.visitMethod(access, name, desc, signature, exceptions);
     }
 
-    @Override
-    public void visitEnd() {
-        super.visitEnd();
-        System.out.println(tracer.p.getText());
-    }
+//    @Override
+//    public void visitEnd() {
+//        super.visitEnd();
+//        System.out.println(tracer.p.getText());
+//    }
 
     private static class InstrumentingMethodVisitor extends MethodVisitor {
         private final static String ENTITLEMENT_ANNOTATION = "EntitlementInstrumented";
@@ -76,10 +76,10 @@ class InstrumentAndAnnotateMethodClassVisitor extends ClassVisitor {
         public void visitCode() {
             //System.out.println("InstrumentingMethodVisitor#visitCode");
             if (isAnnotationPresent) {
-                System.out.println("Annotation is present, skipping instrumentation");
+                //System.out.println("Annotation is present, skipping instrumentation");
                 mv.visitCode();
             } else {
-                System.out.println("Annotation not present, adding instrumentation");
+                //System.out.println("Annotation not present, adding instrumentation");
                 AnnotationVisitor av = mv.visitAnnotation(ENTITLEMENT_ANNOTATION, true);
                 if (av != null) {
                     av.visitEnd();

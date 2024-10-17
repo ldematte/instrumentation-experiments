@@ -38,10 +38,10 @@ class CheckAndReplayMethodVisitor extends MethodVisitor {
             return;
         }
         if (instruction.equals(instructionsToMatch.get(cursor)) == false) {
-            System.out.println("Looking for [" + instructionsToMatch.get(cursor) + "] at cursor [" + cursor + "], got [" + instruction + "]");
+            //System.out.println("Looking for [" + instructionsToMatch.get(cursor) + "] at cursor [" + cursor + "], got [" + instruction + "]");
             failing = true;
         } else {
-            System.out.println("Matched " + instructionsToMatch.get(cursor) + "] at cursor [" + cursor + "] with [" + instruction + "]");
+            //System.out.println("Matched " + instructionsToMatch.get(cursor) + "] at cursor [" + cursor + "] with [" + instruction + "]");
             ++cursor;
         }
     }
@@ -89,10 +89,10 @@ class CheckAndReplayMethodVisitor extends MethodVisitor {
     @Override
     public void visitEnd() {
         if (failing == false) {
-            System.out.println("Matching, continue with pass-through visitor");
+            //System.out.println("Matching, continue with pass-through visitor");
             deferredMethodVisitor.setInnerMethodVisitor(nonMatchingVisitor);
         } else {
-            System.out.println("Failing, continue with instrumenting visitor");
+            //System.out.println("Failing, continue with instrumenting visitor");
             deferredMethodVisitor.setInnerMethodVisitor(matchingVisitor);
         }
         deferredMethodVisitor.visitEnd();
