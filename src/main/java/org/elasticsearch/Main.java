@@ -1,10 +1,15 @@
 package org.elasticsearch;
 
 import java.io.IOException;
-import java.nio.file.Files;
-import java.util.function.Supplier;
 
 public class Main {
+
+    static class FileWatchingServiceFactory {
+        @DelegateChecks
+        static AbstractFileWatchingService create() {
+            return new DelegatingAbstractFileWatchingService();
+        }
+    }
 
     public static void main(String[] args) throws IOException {
         System.out.println("Calling System.exit");
@@ -21,14 +26,9 @@ public class Main {
 //            System.out.println("No open!");
 //        }
 
-        EntitlementChecker.allowed = true;
+        EntitlementCheckerImpl.allowed = true;
 
-        var fileWatcher = new AbstractFileWatchingService(new Delegator() {
-            @Override
-            public <T> T delegate(Supplier<T> supplier) {
-                return supplier.get();
-            }
-        });
+        var fileWatcher = FileWatchingServiceFactory.create();
 
 //        System.out.println("Calling Files.newOutputStream a 2nd time");
 //        try (var x = Files.newOutputStream(Files.createTempFile("test", "test"))) {
