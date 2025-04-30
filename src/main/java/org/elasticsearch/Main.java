@@ -2,6 +2,7 @@ package org.elasticsearch;
 
 import java.io.IOException;
 import java.nio.file.Files;
+import java.util.function.Supplier;
 
 public class Main {
 
@@ -21,6 +22,13 @@ public class Main {
 //        }
 
         EntitlementChecker.allowed = true;
+
+        var fileWatcher = new AbstractFileWatchingService(new Delegator() {
+            @Override
+            public <T> T delegate(Supplier<T> supplier) {
+                return supplier.get();
+            }
+        });
 
 //        System.out.println("Calling Files.newOutputStream a 2nd time");
 //        try (var x = Files.newOutputStream(Files.createTempFile("test", "test"))) {
