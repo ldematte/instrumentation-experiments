@@ -32,7 +32,11 @@ public class Main {
 
         // var fileWatcher = FileWatchingServiceFactory.create();
         var fileWatcher = new AbstractFileWatchingService(null);
-        fileWatcher.anotherSensitiveMethod();
+        try {
+            fileWatcher.anotherSensitiveMethod();
+        } catch (SecurityException ex) {
+            assert ex.getMessage().equals("class org.elasticsearch.main.Main not allowed");
+        }
 
 //        System.out.println("Calling Files.newOutputStream a 2nd time");
 //        try (var x = Files.newOutputStream(Files.createTempFile("test", "test"))) {

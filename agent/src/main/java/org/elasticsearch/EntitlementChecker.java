@@ -11,19 +11,24 @@ class EntitlementCheckerImpl implements  EntitlementChecker {
 
     @Override
     public void check(Class<?> callerClass) {
-        var classToValidate = callerClass;
-        // TODO: delegation?
-
+        var classToValidate = findClassToValidate(callerClass);
         System.out.printf(
                 Locale.ROOT,
                 "Caller class: %s in %s%n",
-                callerClass.getName(),
-                callerClass.getModule()
+                classToValidate.getName(),
+                classToValidate.getModule()
         );
 
         if (allowed == false) {
-            throw new SecurityException();
+            throw new SecurityException(classToValidate + " not allowed");
         }
+    }
+
+    private Class<?> findClassToValidate(Class<?> callerClass) {
+        if (Util.DELEGATE_CHECK_CLASS.isBound()) {
+            return Util.DELEGATE_CHECK_CLASS.get();
+        }
+        return callerClass;
     }
 }
 

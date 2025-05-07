@@ -1,6 +1,7 @@
 package org.elasticsearch;
 
 import java.util.Optional;
+import java.util.function.Consumer;
 
 import static java.lang.StackWalker.Option.RETAIN_CLASS_REFERENCE;
 
@@ -30,5 +31,22 @@ public class Util {
                                 .map(StackWalker.StackFrame::getDeclaringClass)
                 );
         return callerClassIfAny.orElse(NO_CLASS);
+    }
+
+    static final ScopedValue<Class<?>> DELEGATE_CHECK_CLASS = ScopedValue.newInstance();
+
+    static void delegate(Consumer<Class<?>> runnable) {
+        Class<?> callerClass = StackWalker.getInstance(RETAIN_CLASS_REFERENCE)
+                .walk(
+                        frames -> frames.skip(2) // Skip this method and its caller
+                                .findFirst()
+                                .map(StackWalker.StackFrame::getDeclaringClass)
+                )
+                .orElseThrow();
+        ScopedValue.runWhere(DELEGATE_CHECK_CLASS, callerClass, () -> runnable.accept(callerClass));
+    }
+
+    static void propagateDelegation(Class<?> c, Runnable r) {
+        ScopedValue.runWhere(DELEGATE_CHECK_CLASS, c, r);
     }
 }
