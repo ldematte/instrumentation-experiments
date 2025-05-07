@@ -178,6 +178,7 @@ class DeferredMethodVisitor extends MethodVisitor {
         actions.add(m -> m.visitFieldInsn(opcode, owner, name, descriptor));
     }
 
+    @SuppressWarnings("deprecation") // we need to overload all method calls to replay them
     @Override
     public void visitMethodInsn(int opcode, String owner, String name, String descriptor) {
         actions.add(m -> m.visitMethodInsn(opcode, owner, name, descriptor));

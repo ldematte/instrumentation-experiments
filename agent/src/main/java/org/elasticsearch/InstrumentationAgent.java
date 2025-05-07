@@ -2,6 +2,8 @@ package org.elasticsearch;
 
 import java.io.IOException;
 import java.lang.instrument.Instrumentation;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.jar.JarFile;
 
 public class InstrumentationAgent {
@@ -9,9 +11,16 @@ public class InstrumentationAgent {
     public static void premain(String agentArgs, Instrumentation instrumentation) throws IOException {
         System.out.println("[Agent] In premain method");
 
-        instrumentation.appendToBootstrapClassLoaderSearch(new JarFile("./agent/build/libs/agent-1.0-SNAPSHOT.jar"));
-        instrumentation.appendToBootstrapClassLoaderSearch(new JarFile("./agent/asm-9.7.jar"));
-        instrumentation.appendToBootstrapClassLoaderSearch(new JarFile("./agent/asm-util-9.7.jar"));
+        try (var stream = Files.list(Paths.get("./agent/build/libs/"))
+                .filter(file -> !Files.isDirectory(file))) {
+            stream.forEach(path -> {
+                try {
+                    instrumentation.appendToBootstrapClassLoaderSearch(new JarFile(path.toFile()));
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
+            });
+        }
 
         transformClass("java.lang.Shutdown", instrumentation, "exit");
         // sun.nio.fs.UnixNativeDispatcher

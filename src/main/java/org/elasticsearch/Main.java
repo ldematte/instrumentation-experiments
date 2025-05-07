@@ -15,7 +15,7 @@ public class Main {
         System.out.println("Calling System.exit");
         try {
             System.exit(1);
-        } catch (UnsupportedOperationException ex) {
+        } catch (SecurityException ex) {
             System.out.println("No exit!");
         }
         System.out.println("Calling Files.newOutputStream");

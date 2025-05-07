@@ -1,9 +1,9 @@
 package org.elasticsearch;
 
 import org.objectweb.asm.ClassVisitor;
-import org.objectweb.asm.Label;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
+import org.objectweb.asm.Type;
 import org.objectweb.asm.util.TraceClassVisitor;
 import org.objectweb.asm.util.TraceMethodVisitor;
 
@@ -65,23 +65,37 @@ class InstrumentMethodClassVisitor extends ClassVisitor {
         @Override
         public void visitCode() {
             //System.out.println("InstrumentingMethodVisitor#visitCode");
-            mv.visitCode();
             prologue(this);
+            mv.visitCode();
         }
 
+
         static void prologue(MethodVisitor mv) {
-            //System.out.println("Prologue");
-            mv.visitMethodInsn(INVOKESTATIC, "org/elasticsearch/EntitlementChecker",
-                    "check", "()Z", false);
-            Label end = new Label();
-            mv.visitJumpInsn(IFNE, end);
-            //mv.visitFrame(F_SAME, 0, null, 0, null);
-            mv.visitTypeInsn(NEW, "java/lang/UnsupportedOperationException");
-            mv.visitInsn(DUP);
-            mv.visitMethodInsn(INVOKESPECIAL,
-                    "java/lang/UnsupportedOperationException", "<init>", "()V", false);
-            mv.visitInsn(ATHROW);
-            mv.visitLabel(end);
+            Type checkerClassType = Type.getType(EntitlementChecker.class);
+            String handleClass = checkerClassType.getInternalName() + "Handle";
+            String getCheckerClassMethodDescriptor = Type.getMethodDescriptor(checkerClassType);
+
+            // pushEntitlementChecker
+            mv.visitMethodInsn(INVOKESTATIC, handleClass, "instance", getCheckerClassMethodDescriptor, false);
+            // pushCallerClass
+            mv.visitMethodInsn(
+                    INVOKESTATIC,
+                    Type.getInternalName(Util.class),
+                    "getCallerClass",
+                    Type.getMethodDescriptor(Type.getType(Class.class)),
+                    false
+            );
+            // invokeInstrumentationMethod
+            mv.visitMethodInsn(
+                    INVOKEINTERFACE,
+                    checkerClassType.getInternalName(),
+                    "check",
+                    Type.getMethodDescriptor(
+                            Type.VOID_TYPE,
+                            Type.getType(Class.class)
+                    ),
+                    true
+            );
         }
 
 //        @Override

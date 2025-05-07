@@ -1,5 +1,6 @@
 plugins {
     id 'java'
+    id 'application'
 }
 
 group = 'org.elasticsearch'
@@ -16,8 +17,24 @@ dependencies {
     annotationProcessor project(":agent")
     implementation(project(':agent'))
 
-    runtimeOnly('org.ow2.asm:asm:9.7');
-    runtimeOnly('org.ow2.asm:asm-util:9.7');
+    runtimeOnly('org.ow2.asm:asm:9.7.1');
+    runtimeOnly('org.ow2.asm:asm-util:9.7.1');
+}
+
+ext {
+    javaMainClass = "org.elasticsearch.Main"
+}
+tasks.withType(Test).configureEach {
+    jvmArgs += '--enable-preview'
+    jvmArgs += '-javaagent:/Users/lorenzodematte/Projects/instrumentation-experiment/agent/build/libs/agent-1.0-SNAPSHOT.jar'
+}
+tasks.withType(JavaExec).configureEach {
+    jvmArgs += '--enable-preview'
+    jvmArgs += '-javaagent:/Users/lorenzodematte/Projects/instrumentation-experiment/agent/build/libs/agent-1.0-SNAPSHOT.jar'
+}
+
+application {
+    mainClassName = javaMainClass
 }
 
 test {

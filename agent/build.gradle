@@ -20,6 +20,22 @@ test {
     useJUnitPlatform()
 }
 
+var copyTask = tasks.register('copyToLib', Copy) {
+    into "$buildDir/libs"
+    from configurations.runtimeClasspath
+}
+
+tasks.withType(JavaCompile).configureEach {
+    dependsOn(copyTask)
+    options.compilerArgs += ['--enable-preview']
+}
+tasks.withType(Test).configureEach {
+    jvmArgs += '--enable-preview'
+}
+tasks.withType(JavaExec).configureEach {
+    jvmArgs += '--enable-preview'
+}
+
 jar {
     manifest {
         attributes(
