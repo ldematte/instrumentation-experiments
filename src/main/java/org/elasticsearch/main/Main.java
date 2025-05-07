@@ -1,4 +1,7 @@
-package org.elasticsearch;
+package org.elasticsearch.main;
+
+import org.elasticsearch.AbstractFileWatchingService;
+import org.elasticsearch.DelegateChecks;
 
 import java.io.IOException;
 
@@ -7,7 +10,7 @@ public class Main {
     static class FileWatchingServiceFactory {
         @DelegateChecks
         static AbstractFileWatchingService create() {
-            return new DelegatingAbstractFileWatchingService();
+            return new org.elasticsearch.generated.DelegatingAbstractFileWatchingService();
         }
     }
 
@@ -26,16 +29,14 @@ public class Main {
 //            System.out.println("No open!");
 //        }
 
-        EntitlementCheckerImpl.allowed = true;
 
-        var fileWatcher = FileWatchingServiceFactory.create();
+        // var fileWatcher = FileWatchingServiceFactory.create();
+        var fileWatcher = new AbstractFileWatchingService(null);
+        fileWatcher.anotherSensitiveMethod();
 
 //        System.out.println("Calling Files.newOutputStream a 2nd time");
 //        try (var x = Files.newOutputStream(Files.createTempFile("test", "test"))) {
 //            x.write(10);
 //        }
-        System.out.println("Calling System.exit a 2nd time");
-        System.exit(0);
-        throw new RuntimeException("Should not reach this point");
     }
 }

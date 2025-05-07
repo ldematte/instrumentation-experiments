@@ -18,7 +18,7 @@ class EntitlementCheckerImpl implements  EntitlementChecker {
                 Locale.ROOT,
                 "Caller class: %s in %s%n",
                 callerClass.getName(),
-                callerClass.getProtectionDomain().getCodeSource().getLocation()
+                callerClass.getModule()
         );
 
         if (allowed == false) {

@@ -3,5 +3,5 @@ module org.elasticsearch.instrumentation.agent {
     requires org.objectweb.asm.util;
     requires java.compiler;
 
-    exports org.elasticsearch to java.base;
+    exports org.elasticsearch;
 }

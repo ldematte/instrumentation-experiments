@@ -22,15 +22,23 @@ dependencies {
 }
 
 ext {
-    javaMainClass = "org.elasticsearch.Main"
+    javaMainClass = "org.elasticsearch.main.Main"
 }
 tasks.withType(Test).configureEach {
     jvmArgs += '--enable-preview'
-    jvmArgs += '-javaagent:/Users/lorenzodematte/Projects/instrumentation-experiment/agent/build/libs/agent-1.0-SNAPSHOT.jar'
+    jvmArgs += "-javaagent:$projectDir/agent/build/libs/agent-1.0-SNAPSHOT.jar"
+    jvmArgs += "--patch-module=java.base=$projectDir/agent/build/libs/agent-1.0-SNAPSHOT.jar"
+    jvmArgs += '--add-exports=java.base/org.elasticsearch=java.instrument'
+    jvmArgs += '--add-exports=java.base/org.elasticsearch=ALL-UNNAMED'
+    jvmArgs += '--add-reads=java.base=java.instrument'
 }
 tasks.withType(JavaExec).configureEach {
     jvmArgs += '--enable-preview'
-    jvmArgs += '-javaagent:/Users/lorenzodematte/Projects/instrumentation-experiment/agent/build/libs/agent-1.0-SNAPSHOT.jar'
+    jvmArgs += "-javaagent:$projectDir/agent/build/libs/agent-1.0-SNAPSHOT.jar"
+    jvmArgs += "--patch-module=java.base=$projectDir/agent/build/libs/agent-1.0-SNAPSHOT.jar"
+    jvmArgs += '--add-exports=java.base/org.elasticsearch=java.instrument'
+    jvmArgs += '--add-exports=java.base/org.elasticsearch=ALL-UNNAMED'
+    jvmArgs += '--add-reads=java.base=java.instrument'
 }
 
 application {

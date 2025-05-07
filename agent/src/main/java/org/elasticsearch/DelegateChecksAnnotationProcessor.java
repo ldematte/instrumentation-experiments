@@ -55,19 +55,15 @@ public class DelegateChecksAnnotationProcessor extends AbstractProcessor {
 
         try (PrintWriter out = new PrintWriter(builderFile.openWriter())) {
 
-            if (packageName != null) {
-                out.print("package ");
-                out.print(packageName);
-                out.println(";");
-                out.println();
-            }
+            out.println("package " + packageName + ".generated;");
+            out.println();
 
-            out.println("import " + className +";");
+            out.println("import " + packageName + ".*;");
             out.println("import java.util.function.Supplier;");
 
             out.println(String.format("""
                     public class %s extends %s {
-                        %1$s() {
+                        public %1$s() {
                             super(new Delegator() {
                                 @Override
                                 public <T> T delegate(Supplier<T> supplier) {
