@@ -3,14 +3,16 @@ package org.elasticsearch;
 import org.objectweb.asm.ClassVisitor;
 import org.objectweb.asm.MethodVisitor;
 
-import static org.objectweb.asm.Opcodes.ASM7;
+import java.util.Set;
+
+import static org.objectweb.asm.Opcodes.ASM9;
 
 public class AlreadyInstrumentedMethodChecker extends ClassVisitor {
     private final String methodName;
     boolean instrumentationNeeded = false;
 
     public AlreadyInstrumentedMethodChecker(String methodName) {
-        super(ASM7);
+        super(ASM9);
         this.methodName = methodName;
     }
 
@@ -22,7 +24,7 @@ public class AlreadyInstrumentedMethodChecker extends ClassVisitor {
                                      String[] exceptions) {
 
         //System.out.println("[Agent] AlreadyInstrumentedMethodChecker visiting method " + name);
-        if (name.equals(methodName)) {
+        if (methodName.equals(name)) {
             var recordingVisitor = new RecordingMethodVisitor();
             InstrumentMethodClassVisitor.InstrumentingMethodVisitor.prologue(recordingVisitor);
 

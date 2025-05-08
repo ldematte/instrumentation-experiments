@@ -2,17 +2,27 @@ package org.elasticsearch;
 
 import java.lang.instrument.ClassFileTransformer;
 import java.security.ProtectionDomain;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
 
-public class EntitlementCheckTransformer implements ClassFileTransformer {
+class EntitlementCheckTransformer implements ClassFileTransformer {
 
-    private final String targetClassName;
-    private final String methodName;
-    private final ClassLoader targetClassLoader;
+    private final Map<String, List<String>> targetClasses;
 
-    public EntitlementCheckTransformer(String targetClassName, ClassLoader targetClassLoader, String methodName) {
-        this.targetClassName = targetClassName.replaceAll("\\.", "/");
-        this.methodName = methodName;
-        this.targetClassLoader = targetClassLoader;
+    private static String getInternalClassName(Class<?> targetClass) {
+        return targetClass.getName().replaceAll("\\.", "/");
+    }
+
+    EntitlementCheckTransformer(Set<InstrumentationAgent.MethodKey> methodsToTransform) {
+        this.targetClasses = methodsToTransform.stream().collect(
+                Collectors.groupingBy(
+                        m -> getInternalClassName(m.clazz()),
+                        Collectors.mapping(InstrumentationAgent.MethodKey::methodName, Collectors.toList())
+                )
+        );
     }
 
     @Override
@@ -24,26 +34,30 @@ public class EntitlementCheckTransformer implements ClassFileTransformer {
             byte[] classfileBuffer
     ) {
         //System.out.println("[Agent] transform called for " + className);
-        if (className.equals(targetClassName)) { //&& loader.equals(targetClassLoader)) {
-            //System.out.println("[Agent] Transforming class");
-            try {
-                var rewriter = new ClassRewriter(classfileBuffer);
-                //System.out.println("[Agent] Rewriter created");
 
+        //System.out.println("[Agent] Transforming class");
+        try {
+            var rewriter = new ClassRewriter(classfileBuffer);
+            //System.out.println("[Agent] Rewriter created");
 
-                var instrumentedClassBytes =  rewriter.checkAndInstrumentMethodTwoPasses(methodName);
-                if (instrumentedClassBytes != null) {
-                    //System.out.println("Instrumented class");
-                    return instrumentedClassBytes;
-                }
-                //System.out.println("No need to instrument class");
-
-                //return rewriter.instrumentMethod(methodName);
-            } catch (Throwable t) {
-                System.out.println("[Agent] error " + t);
-                t.printStackTrace();
+            Set<String> methods = new HashSet<>();
+            var classMethods = targetClasses.get(className);
+            if (classMethods != null) {
+                methods.addAll(classMethods);
             }
+            var instrumentedClassBytes =  rewriter.instrumentMethodNoChecks(methods);
+            if (instrumentedClassBytes != null) {
+                //System.out.println("Instrumented class");
+                return instrumentedClassBytes;
+            }
+            //System.out.println("No need to instrument class");
+
+            //return rewriter.instrumentMethod(methodName);
+        } catch (Throwable t) {
+            System.out.println("[Agent] error " + t);
+            t.printStackTrace();
         }
-        return classfileBuffer;
+
+        return null;
     }
 }

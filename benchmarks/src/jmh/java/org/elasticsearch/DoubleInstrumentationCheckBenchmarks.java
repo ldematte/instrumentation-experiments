@@ -7,6 +7,7 @@ import org.openjdk.jmh.annotations.State;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.Set;
 
 @State(Scope.Benchmark)
 public class DoubleInstrumentationCheckBenchmarks {
@@ -37,16 +38,16 @@ public class DoubleInstrumentationCheckBenchmarks {
     @Benchmark
     public byte[] noCheck() {
         var classRewriter = new ClassRewriter(originalBytecodes);
-        return classRewriter.instrumentMethodNoChecks("methodToInstrument");
+        return classRewriter.instrumentMethodNoChecks(Set.of("methodToInstrument"));
     }
 
     @Benchmark
     public byte[] noCheckCalledTwice() {
         var classRewriter = new ClassRewriter(originalBytecodes);
-        var instrumentedBytes = classRewriter.instrumentMethodNoChecks("methodToInstrument");
+        var instrumentedBytes = classRewriter.instrumentMethodNoChecks(Set.of("methodToInstrument"));
 
         classRewriter = new ClassRewriter(instrumentedBytes);
-        return classRewriter.instrumentMethodNoChecks("methodToInstrument");
+        return classRewriter.instrumentMethodNoChecks(Set.of("methodToInstrument"));
     }
 
     @Benchmark

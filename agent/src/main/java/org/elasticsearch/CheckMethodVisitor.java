@@ -7,7 +7,7 @@ import java.util.List;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
 
-import static org.objectweb.asm.Opcodes.ASM7;
+import static org.objectweb.asm.Opcodes.ASM9;
 
 
 class CheckMethodVisitor extends MethodVisitor {
@@ -21,7 +21,7 @@ class CheckMethodVisitor extends MethodVisitor {
     private final LabelUtil labelUtil = new LabelUtil();
 
     CheckMethodVisitor(List<RecordingMethodVisitor.Instruction> instructionsToMatch, Consumer<Boolean> matcher) {
-        super(ASM7);
+        super(ASM9);
         this.instructionsToMatch = instructionsToMatch;
         this.matcher = matcher;
     }

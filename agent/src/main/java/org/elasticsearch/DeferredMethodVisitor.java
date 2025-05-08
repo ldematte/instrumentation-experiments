@@ -11,7 +11,7 @@ class DeferredMethodVisitor extends MethodVisitor {
     private final List<Consumer<MethodVisitor>> actions = new ArrayList<>();
 
     DeferredMethodVisitor() {
-        super(Opcodes.ASM7);
+        super(Opcodes.ASM9);
     }
 
     @Override

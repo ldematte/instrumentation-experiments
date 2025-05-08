@@ -4,6 +4,8 @@ import org.objectweb.asm.*;
 import org.objectweb.asm.util.Textifier;
 import org.objectweb.asm.util.TraceMethodVisitor;
 
+import java.util.Set;
+
 import static org.objectweb.asm.Opcodes.*;
 
 public class ClassRewriter {
@@ -18,9 +20,9 @@ public class ClassRewriter {
         writer = new ClassWriter(reader, ClassWriter.COMPUTE_FRAMES | ClassWriter.COMPUTE_MAXS);
     }
 
-    public byte[] instrumentMethodNoChecks(String methodName) {
+    public byte[] instrumentMethodNoChecks(Set<String> methodNames) {
         //System.out.println("[Agent] Calling ASM instrumentMethod");
-        reader.accept(new InstrumentMethodClassVisitor(writer, methodName), 0);
+        reader.accept(new InstrumentMethodClassVisitor(writer, methodNames), 0);
         return writer.toByteArray();
     }
 
@@ -35,7 +37,7 @@ public class ClassRewriter {
         var checker = new AlreadyInstrumentedMethodChecker(methodName);
         reader.accept(checker, 0);
         if (checker.instrumentationNeeded) {
-            reader.accept(new InstrumentMethodClassVisitor(writer, methodName), 0);
+            reader.accept(new InstrumentMethodClassVisitor(writer, Set.of(methodName)), 0);
             return writer.toByteArray();
         }
         return null;

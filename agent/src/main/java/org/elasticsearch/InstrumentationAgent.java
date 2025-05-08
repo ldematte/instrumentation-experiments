@@ -4,9 +4,16 @@ import java.io.IOException;
 import java.lang.instrument.Instrumentation;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.nio.file.spi.FileSystemProvider;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.jar.JarFile;
+import java.util.stream.Stream;
 
 public class InstrumentationAgent {
+
+    record MethodKey(Class<?> clazz, String methodName) {}
 
     public static void premain(String agentArgs, Instrumentation instrumentation) throws IOException {
         System.out.println("[Agent] In premain method");
@@ -22,23 +29,23 @@ public class InstrumentationAgent {
             });
         }
 
-        transformClass("java.lang.Shutdown", instrumentation, "exit");
-        transformClass("java.nio.file.Files", instrumentation, "exists");
+        Set<MethodKey> classesToTransform = Set.of(
+                transformClass("java.lang.Shutdown", "exit", instrumentation),
+                transformClass("java.nio.file.Files", "exists", instrumentation)
+        );
+        transform(classesToTransform, instrumentation);
         // sun.nio.fs.UnixNativeDispatcher
         // private static native int open0(long pathAddress, int flags, int mode) throws UnixException;
         //transformNativeClass("sun.nio.fs.UnixNativeDispatcher", instrumentation, "open0", "(JII)I");
         System.out.println("[Agent] completed");
     }
 
-    private static void transformClass(String className, Instrumentation instrumentation, String methodName) {
+    private static MethodKey transformClass(String className, String methodName, Instrumentation instrumentation) {
         Class<?> targetCls = null;
-        ClassLoader targetClassLoader = null;
         // see if we can get the class using forName
         try {
             targetCls = Class.forName(className);
-            targetClassLoader = targetCls.getClassLoader();
-            transform(targetCls, targetClassLoader, instrumentation, methodName);
-            return;
+            return new MethodKey(targetCls, methodName);
         } catch (Exception ex) {
             System.out.println("Class [{}] not found with Class.forName");
             ex.printStackTrace();
@@ -48,9 +55,7 @@ public class InstrumentationAgent {
             for(Class<?> clazz: instrumentation.getAllLoadedClasses()) {
                 if(clazz.getName().equals(className)) {
                     targetCls = clazz;
-                    targetClassLoader = targetCls.getClassLoader();
-                    transform(targetCls, targetClassLoader, instrumentation, methodName);
-                    return;
+                    return new MethodKey(targetCls, methodName);
                 }
             }
         } catch (Exception ex) {
@@ -60,12 +65,16 @@ public class InstrumentationAgent {
         throw new RuntimeException("Failed to find class [" + className + "]");
     }
 
-    private static void transform(Class<?> clazz, ClassLoader classLoader, Instrumentation instrumentation, String methodName) {
-        instrumentation.addTransformer(new EntitlementCheckTransformer(clazz.getName(), classLoader, methodName), true);
+    private static void transform(Set<MethodKey> methodsToTransform, Instrumentation instrumentation) {
+        instrumentation.addTransformer(new EntitlementCheckTransformer(methodsToTransform), true);
         try {
-            instrumentation.retransformClasses(clazz);
+            instrumentation.retransformClasses(
+                    Stream.concat(
+                            methodsToTransform.stream().map(MethodKey::clazz),
+                            Stream.of()
+                    ).toArray(Class[]::new));
         } catch (Exception ex) {
-            throw new RuntimeException("Transform failed for class: [" + clazz.getName() + "]", ex);
+            throw new RuntimeException("Retransform failed", ex);
         }
     }
 

@@ -6,7 +6,7 @@ import org.objectweb.asm.util.TraceMethodVisitor;
 
 import java.util.List;
 
-import static org.objectweb.asm.Opcodes.ASM7;
+import static org.objectweb.asm.Opcodes.ASM9;
 
 class TracerRecordingMethodVisitor extends MethodVisitor {
 
@@ -18,7 +18,7 @@ class TracerRecordingMethodVisitor extends MethodVisitor {
     }
 
     private TracerRecordingMethodVisitor(TraceMethodVisitor tracer) {
-        super(ASM7, tracer);
+        super(ASM9, tracer);
         this.tracer = tracer;
     }
 

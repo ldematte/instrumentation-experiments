@@ -8,17 +8,18 @@ import org.objectweb.asm.util.TraceClassVisitor;
 import org.objectweb.asm.util.TraceMethodVisitor;
 
 import java.io.PrintWriter;
+import java.util.Set;
 
 import static org.objectweb.asm.Opcodes.*;
 
 class InstrumentMethodClassVisitor extends ClassVisitor {
 
-    private final String methodName;
+    private final Set<String> methodNames;
     //private final TraceClassVisitor tracer;
 
-    public InstrumentMethodClassVisitor(ClassVisitor cv, String methodName) {
-        super(ASM7, cv);
-        this.methodName = methodName;
+    public InstrumentMethodClassVisitor(ClassVisitor cv, Set<String> methodNames) {
+        super(ASM9, cv);
+        this.methodNames = methodNames;
         //this.tracer = new TraceClassVisitor(cv, new PrintWriter(System.out));
     }
 
@@ -37,7 +38,7 @@ class InstrumentMethodClassVisitor extends ClassVisitor {
                                      String[] exceptions) {
 
         //System.out.println("[Agent] visiting method " + name);
-        if (name.equals(methodName)) {
+        if (methodNames.contains(name)) {
             var methodVisitor = cv.visitMethod(access, name, desc, signature, exceptions);
 
             //System.out.println("[Agent] method " + name + " instrumenting: " + (methodVisitor == null ? "no" : "yes"));
@@ -58,7 +59,7 @@ class InstrumentMethodClassVisitor extends ClassVisitor {
 
     static class InstrumentingMethodVisitor extends MethodVisitor {
         public InstrumentingMethodVisitor(MethodVisitor mv) {
-            super(Opcodes.ASM7, mv);
+            super(Opcodes.ASM9, mv);
             //System.out.println("Instrumenting");
         }
 

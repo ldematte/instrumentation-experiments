@@ -6,7 +6,7 @@ import org.objectweb.asm.MethodVisitor;
 import java.util.List;
 import java.util.function.Predicate;
 
-import static org.objectweb.asm.Opcodes.ASM7;
+import static org.objectweb.asm.Opcodes.ASM9;
 
 class CheckAndReplayMethodVisitor extends MethodVisitor {
 
@@ -29,7 +29,7 @@ class CheckAndReplayMethodVisitor extends MethodVisitor {
                                         MethodVisitor matchingVisitor,
                                         MethodVisitor nonMatchingVisitor,
                                         List<RecordingMethodVisitor.Instruction> instructionsToMatch) {
-        super(ASM7, mv);
+        super(ASM9, mv);
         this.deferredMethodVisitor = mv;
         this.matchingVisitor = matchingVisitor;
         this.nonMatchingVisitor = nonMatchingVisitor;

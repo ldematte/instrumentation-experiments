@@ -10,7 +10,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Objects;
 
-import static org.objectweb.asm.Opcodes.ASM7;
+import static org.objectweb.asm.Opcodes.ASM9;
 
 class LabelUtil {
     private final HashMap<Label, String> labels = new HashMap<>();
@@ -71,7 +71,7 @@ class RecordingMethodVisitor extends MethodVisitor {
     private final List<Instruction> instructions = new ArrayList<>();
 
     RecordingMethodVisitor() {
-        super(ASM7);
+        super(ASM9);
     }
 
     @Override

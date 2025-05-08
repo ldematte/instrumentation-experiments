@@ -17,7 +17,7 @@ class SinglePassCheckAndInstrumentMethodClassVisitor extends ClassVisitor {
     //private final TraceClassVisitor tracer;
 
     public SinglePassCheckAndInstrumentMethodClassVisitor(ClassVisitor cv, String methodName) {
-        super(ASM7, cv);
+        super(ASM9, cv);
         this.methodName = methodName;
         //this.tracer = new TraceClassVisitor(cv, new PrintWriter(System.out));
     }
@@ -50,7 +50,7 @@ class SinglePassCheckAndInstrumentMethodClassVisitor extends ClassVisitor {
                             //new TraceMethodVisitor(methodVisitor, SinglePassCheckAndInstrumentMethodClassVisitor.this.tracer.p)
                             methodVisitor
                     ),
-                    new MethodVisitor(ASM7,
+                    new MethodVisitor(ASM9,
                             //new TraceMethodVisitor(methodVisitor, SinglePassCheckAndInstrumentMethodClassVisitor.this.tracer.p)
                             methodVisitor
                     ) {
@@ -70,7 +70,7 @@ class SinglePassCheckAndInstrumentMethodClassVisitor extends ClassVisitor {
 
     private static class InstrumentingMethodVisitor extends MethodVisitor {
         public InstrumentingMethodVisitor(MethodVisitor mv) {
-            super(Opcodes.ASM7, mv);
+            super(Opcodes.ASM9, mv);
             //System.out.println("Instrumenting");
         }
 

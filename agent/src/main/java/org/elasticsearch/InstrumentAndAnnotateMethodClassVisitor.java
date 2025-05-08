@@ -15,7 +15,7 @@ class InstrumentAndAnnotateMethodClassVisitor extends ClassVisitor {
     //private final TraceClassVisitor tracer;
 
     public InstrumentAndAnnotateMethodClassVisitor(ClassVisitor cv, String methodName) {
-        super(ASM7, cv);
+        super(ASM9, cv);
         this.methodName = methodName;
         //this.tracer = new TraceClassVisitor(cv, new PrintWriter(System.out));
     }
@@ -60,7 +60,7 @@ class InstrumentAndAnnotateMethodClassVisitor extends ClassVisitor {
         private boolean isAnnotationPresent;
 
         public InstrumentingMethodVisitor(MethodVisitor mv) {
-            super(Opcodes.ASM7, mv);
+            super(ASM9, mv);
             //System.out.println("Instrumenting");
         }
 

@@ -31,6 +31,7 @@ tasks.withType(Test).configureEach {
     jvmArgs += '--add-exports=java.base/org.elasticsearch=java.instrument'
     jvmArgs += '--add-exports=java.base/org.elasticsearch=ALL-UNNAMED'
     jvmArgs += '--add-reads=java.base=java.instrument'
+    jvmArgs += '--add-reads=java.base=ALL-UNNAMED'
 }
 tasks.withType(JavaExec).configureEach {
     jvmArgs += '--enable-preview'
@@ -39,6 +40,7 @@ tasks.withType(JavaExec).configureEach {
     jvmArgs += '--add-exports=java.base/org.elasticsearch=java.instrument'
     jvmArgs += '--add-exports=java.base/org.elasticsearch=ALL-UNNAMED'
     jvmArgs += '--add-reads=java.base=java.instrument'
+    jvmArgs += '--add-reads=java.base=ALL-UNNAMED'
 }
 
 application {

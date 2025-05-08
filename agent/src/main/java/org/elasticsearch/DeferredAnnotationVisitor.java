@@ -6,14 +6,14 @@ import org.objectweb.asm.MethodVisitor;
 import java.util.List;
 import java.util.function.Consumer;
 
-import static org.objectweb.asm.Opcodes.ASM7;
+import static org.objectweb.asm.Opcodes.ASM9;
 
 class DeferredAnnotationVisitor extends AnnotationVisitor {
 
     private final List<Consumer<MethodVisitor>> actions;
 
     DeferredAnnotationVisitor(List<Consumer<MethodVisitor>> actions) {
-        super(ASM7);
+        super(ASM9);
         this.actions = actions;
     }
 
