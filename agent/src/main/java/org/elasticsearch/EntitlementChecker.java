@@ -4,6 +4,9 @@ import java.util.Locale;
 
 public interface EntitlementChecker {
     void check(Class<?> callerClass);
+
+    // TODO: this should be auto-generated, maybe even directly on the impl?
+    void nullCheck(Class<?> callerClass);
 }
 
 class EntitlementCheckerImpl implements  EntitlementChecker {
@@ -22,6 +25,14 @@ class EntitlementCheckerImpl implements  EntitlementChecker {
         if (allowed == false) {
             throw new SecurityException(classToValidate + " not allowed");
         }
+    }
+
+    @Override
+    public void nullCheck(Class<?> callerClass) {
+        System.out.printf(
+                Locale.ROOT,
+                "nullCheck for %s",
+                callerClass.getName());
     }
 
     private Class<?> findClassToValidate(Class<?> callerClass) {

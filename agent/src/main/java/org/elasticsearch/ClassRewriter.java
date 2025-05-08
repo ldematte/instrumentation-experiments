@@ -17,7 +17,7 @@ public class ClassRewriter {
         //System.out.println("[Agent] Calling ASM");
 
         reader = new ClassReader(contents);
-        writer = new ClassWriter(reader, ClassWriter.COMPUTE_FRAMES | ClassWriter.COMPUTE_MAXS);
+        writer = new ClassWriter(reader, 0);//ClassWriter.COMPUTE_FRAMES | ClassWriter.COMPUTE_MAXS);
     }
 
     public byte[] instrumentMethodNoChecks(Set<String> methodNames) {

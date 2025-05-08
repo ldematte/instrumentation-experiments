@@ -1,6 +1,9 @@
 package org.elasticsearch;
 
 import java.lang.instrument.ClassFileTransformer;
+import java.nio.file.Files;
+import java.nio.file.OpenOption;
+import java.nio.file.Path;
 import java.security.ProtectionDomain;
 import java.util.HashSet;
 import java.util.List;
@@ -45,10 +48,14 @@ class EntitlementCheckTransformer implements ClassFileTransformer {
             if (classMethods != null) {
                 methods.addAll(classMethods);
             }
-            var instrumentedClassBytes =  rewriter.instrumentMethodNoChecks(methods);
+            var instrumentedClassBytes = rewriter.instrumentMethodNoChecks(methods);
             if (instrumentedClassBytes != null) {
-                //System.out.println("Instrumented class");
+                //System.out.println("Instrumented class " + className);
+                //var path = Path.of(className + ".class");
+                //Files.createDirectories(path.getParent());
+                //Files.write(path, instrumentedClassBytes);
                 return instrumentedClassBytes;
+
             }
             //System.out.println("No need to instrument class");
 

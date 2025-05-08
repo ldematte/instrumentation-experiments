@@ -1,13 +1,11 @@
 package org.elasticsearch;
 
-import org.objectweb.asm.ClassVisitor;
-import org.objectweb.asm.MethodVisitor;
-import org.objectweb.asm.Opcodes;
-import org.objectweb.asm.Type;
-import org.objectweb.asm.util.TraceClassVisitor;
-import org.objectweb.asm.util.TraceMethodVisitor;
+import org.objectweb.asm.*;
 
-import java.io.PrintWriter;
+import java.lang.invoke.CallSite;
+import java.lang.invoke.MethodHandle;
+import java.lang.invoke.MethodHandles;
+import java.lang.invoke.MethodType;
 import java.util.Set;
 
 import static org.objectweb.asm.Opcodes.*;
@@ -37,18 +35,24 @@ class InstrumentMethodClassVisitor extends ClassVisitor {
                                      String signature,
                                      String[] exceptions) {
 
-        //System.out.println("[Agent] visiting method " + name);
+        // System.out.println("[Agent] visiting method " + name);
+        var methodVisitor = cv.visitMethod(access, name, desc, signature, exceptions);
         if (methodNames.contains(name)) {
-            var methodVisitor = cv.visitMethod(access, name, desc, signature, exceptions);
-
             //System.out.println("[Agent] method " + name + " instrumenting: " + (methodVisitor == null ? "no" : "yes"));
             return new InstrumentingMethodVisitor(
                     //new TraceMethodVisitor(methodVisitor, InstrumentMethodClassVisitor.this.tracer.p)
-                    methodVisitor
+                    methodVisitor, name
             );
-
         }
-        return cv.visitMethod(access, name, desc, signature, exceptions);
+        //System.out.println("[Agent] method " + name + " in interfaces?");
+        if (CheckerFactory.methodsToInterfaces.containsKey(name)) {
+            //System.out.println("[Agent] inherited method " + name + " instrumenting: " + (methodVisitor == null ? "no" : "yes"));
+            return new InstrumentingInheritanceMethodVisitor(
+                    //new TraceMethodVisitor(methodVisitor, InstrumentMethodClassVisitor.this.tracer.p)
+                    methodVisitor, name
+            );
+        }
+        return methodVisitor;
     }
 
 //    @Override
@@ -58,14 +62,13 @@ class InstrumentMethodClassVisitor extends ClassVisitor {
 //    }
 
     static class InstrumentingMethodVisitor extends MethodVisitor {
-        public InstrumentingMethodVisitor(MethodVisitor mv) {
+        public InstrumentingMethodVisitor(MethodVisitor mv, String name) {
             super(Opcodes.ASM9, mv);
-            //System.out.println("Instrumenting");
+            System.out.println("Instrumenting " + name);
         }
 
         @Override
         public void visitCode() {
-            //System.out.println("InstrumentingMethodVisitor#visitCode");
             prologue(this);
             mv.visitCode();
         }
@@ -104,5 +107,71 @@ class InstrumentMethodClassVisitor extends ClassVisitor {
 //            System.out.println("InstrumentingMethodVisitor#visitEnd");
 //            mv.visitEnd();
 //        }
+    }
+
+    static class InstrumentingInheritanceMethodVisitor extends MethodVisitor {
+        private final String methodName;
+
+        public InstrumentingInheritanceMethodVisitor(MethodVisitor mv, String methodName) {
+            super(Opcodes.ASM9, mv);
+            this.methodName = methodName;
+            System.out.println("Instrumenting for inheritance " + methodName);
+        }
+
+        @Override
+        public void visitCode() {
+            prologue(this, methodName);
+            mv.visitCode();
+        }
+
+        static void prologue(MethodVisitor mv, String methodName) {
+            Type checkerClassType = Type.getType(EntitlementChecker.class);
+            String handleClass = checkerClassType.getInternalName() + "Handle";
+            String getCheckerClassMethodDescriptor = Type.getMethodDescriptor(checkerClassType);
+
+            // pushEntitlementChecker
+            mv.visitMethodInsn(INVOKESTATIC, handleClass, "instance", getCheckerClassMethodDescriptor, false);
+            // pushCallerClass
+            mv.visitMethodInsn(
+                    INVOKESTATIC,
+                    Type.getInternalName(Util.class),
+                    "getCallerClass",
+                    Type.getMethodDescriptor(Type.getType(Class.class)),
+                    false
+            );
+
+            MethodType mt = MethodType.methodType(CallSite.class, MethodHandles.Lookup.class, String.class,
+                    MethodType.class, String.class, MethodHandle.class);
+
+            Handle bootstrap = new Handle(H_INVOKESTATIC, Type.getInternalName(CheckerFactory.class), "bootstrap",
+                    mt.toMethodDescriptorString(), false);
+
+            // This will be "dynamic", depending on this method signature: the check method is Class + "that" +
+            // original params
+            var checkMethodDescriptor = Type.getMethodDescriptor(
+                    Type.VOID_TYPE,
+                    Type.getType(Class.class)
+            );
+            var dynamicCheckMethodDescriptor = Type.getMethodDescriptor(
+                    Type.VOID_TYPE,
+                    checkerClassType,
+                    Type.getType(Class.class)
+            );
+
+            var checkMethodHandle = new Handle(
+                    H_INVOKEINTERFACE,
+                    checkerClassType.getInternalName(),
+                    "check",
+                    checkMethodDescriptor,
+                    true);
+
+            mv.visitInvokeDynamicInsn(
+                    "runCheck",
+                    dynamicCheckMethodDescriptor,
+                    bootstrap,
+                    methodName,
+                    checkMethodHandle
+            );
+        }
     }
 }

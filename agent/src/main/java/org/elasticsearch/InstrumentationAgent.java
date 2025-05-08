@@ -5,10 +5,9 @@ import java.lang.instrument.Instrumentation;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.nio.file.spi.FileSystemProvider;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.jar.JarFile;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 public class InstrumentationAgent {
@@ -17,6 +16,9 @@ public class InstrumentationAgent {
 
     public static void premain(String agentArgs, Instrumentation instrumentation) throws IOException {
         System.out.println("[Agent] In premain method");
+
+        // TODO: the key should be name + descriptor, here I used just the name for simplicity
+        CheckerFactory.methodsToInterfaces = Map.of("exists", List.of(FileSystemProvider.class));
 
         try (var stream = Files.list(Paths.get("./agent/build/libs/"))
                 .filter(file -> !Files.isDirectory(file))) {
@@ -33,7 +35,7 @@ public class InstrumentationAgent {
                 transformClass("java.lang.Shutdown", "exit", instrumentation),
                 transformClass("java.nio.file.Files", "exists", instrumentation)
         );
-        transform(classesToTransform, instrumentation);
+        transform(classesToTransform, CheckerFactory.methodsToInterfaces, instrumentation);
         // sun.nio.fs.UnixNativeDispatcher
         // private static native int open0(long pathAddress, int flags, int mode) throws UnixException;
         //transformNativeClass("sun.nio.fs.UnixNativeDispatcher", instrumentation, "open0", "(JII)I");
@@ -65,14 +67,19 @@ public class InstrumentationAgent {
         throw new RuntimeException("Failed to find class [" + className + "]");
     }
 
-    private static void transform(Set<MethodKey> methodsToTransform, Instrumentation instrumentation) {
+    private static void transform(Set<MethodKey> methodsToTransform, Map<String, List<Class<?>>> inheritanceMethods, Instrumentation instrumentation) {
         instrumentation.addTransformer(new EntitlementCheckTransformer(methodsToTransform), true);
         try {
-            instrumentation.retransformClasses(
-                    Stream.concat(
-                            methodsToTransform.stream().map(MethodKey::clazz),
-                            Stream.of()
-                    ).toArray(Class[]::new));
+            Set<Class<?>> inheritanceMethodClasses = inheritanceMethods.values().stream().flatMap(Collection::stream).collect(Collectors.toSet());
+
+            var classesToRetransform = Stream.concat(
+                    methodsToTransform.stream().map(MethodKey::clazz),
+                    Arrays.stream(instrumentation.getAllLoadedClasses()).filter(x -> inheritanceMethodClasses.stream().anyMatch(base -> base.isAssignableFrom(x)))
+            ).toArray(Class[]::new);
+
+            //System.out.println("classesToRetransform: " + Arrays.stream(classesToRetransform).map(Class::getSimpleName).collect(Collectors.joining(";")));
+
+            instrumentation.retransformClasses(classesToRetransform);
         } catch (Exception ex) {
             throw new RuntimeException("Retransform failed", ex);
         }

@@ -4,6 +4,10 @@ import org.elasticsearch.AbstractFileWatchingService;
 import org.elasticsearch.DelegateChecks;
 
 import java.io.IOException;
+import java.nio.file.FileSystem;
+import java.nio.file.FileSystems;
+import java.nio.file.Path;
+import java.nio.file.spi.FileSystemProvider;
 
 public class Main {
 
@@ -34,6 +38,13 @@ public class Main {
         var fileWatcher = new AbstractFileWatchingService(null);
         try {
             fileWatcher.anotherSensitiveMethod();
+        } catch (SecurityException ex) {
+            assert ex.getMessage().equals("class org.elasticsearch.main.Main not allowed");
+        }
+
+        try {
+            var provider = FileSystems.getDefault().provider();
+            provider.exists(Path.of("."));
         } catch (SecurityException ex) {
             assert ex.getMessage().equals("class org.elasticsearch.main.Main not allowed");
         }
