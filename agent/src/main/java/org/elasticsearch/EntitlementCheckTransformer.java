@@ -15,14 +15,14 @@ class EntitlementCheckTransformer implements ClassFileTransformer {
 
     private final Map<String, List<String>> targetClasses;
 
-    private static String getInternalClassName(Class<?> targetClass) {
-        return targetClass.getName().replaceAll("\\.", "/");
+    static String getInternalClassName(String targetClassName) {
+        return targetClassName.replaceAll("\\.", "/");
     }
 
     EntitlementCheckTransformer(Set<InstrumentationAgent.MethodKey> methodsToTransform) {
         this.targetClasses = methodsToTransform.stream().collect(
                 Collectors.groupingBy(
-                        m -> getInternalClassName(m.clazz()),
+                        m -> getInternalClassName(m.className()),
                         Collectors.mapping(InstrumentationAgent.MethodKey::methodName, Collectors.toList())
                 )
         );
@@ -40,7 +40,7 @@ class EntitlementCheckTransformer implements ClassFileTransformer {
 
         //System.out.println("[Agent] Transforming class");
         try {
-            var rewriter = new ClassRewriter(classfileBuffer);
+            var rewriter = new ClassRewriter(className, classfileBuffer);
             //System.out.println("[Agent] Rewriter created");
 
             Set<String> methods = new HashSet<>();

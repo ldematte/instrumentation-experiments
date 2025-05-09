@@ -12,7 +12,7 @@ import java.util.stream.Stream;
 
 public class InstrumentationAgent {
 
-    record MethodKey(Class<?> clazz, String methodName) {}
+    record MethodKey(String className, String methodName) {}
 
     public static void premain(String agentArgs, Instrumentation instrumentation) throws IOException {
         System.out.println("[Agent] In premain method");
@@ -43,28 +43,7 @@ public class InstrumentationAgent {
     }
 
     private static MethodKey transformClass(String className, String methodName, Instrumentation instrumentation) {
-        Class<?> targetCls = null;
-        // see if we can get the class using forName
-        try {
-            targetCls = Class.forName(className);
-            return new MethodKey(targetCls, methodName);
-        } catch (Exception ex) {
-            System.out.println("Class [{}] not found with Class.forName");
-            ex.printStackTrace();
-        }
-        // otherwise iterate all loaded classes and find what we want
-        try {
-            for(Class<?> clazz: instrumentation.getAllLoadedClasses()) {
-                if(clazz.getName().equals(className)) {
-                    targetCls = clazz;
-                    return new MethodKey(targetCls, methodName);
-                }
-            }
-        } catch (Exception ex) {
-            System.out.println("Class [{}] not found with Class.forName");
-            ex.printStackTrace();
-        }
-        throw new RuntimeException("Failed to find class [" + className + "]");
+        return new MethodKey(className, methodName);
     }
 
     private static void transform(Set<MethodKey> methodsToTransform, Map<String, List<Class<?>>> inheritanceMethods, Instrumentation instrumentation) {
@@ -73,11 +52,11 @@ public class InstrumentationAgent {
             Set<Class<?>> inheritanceMethodClasses = inheritanceMethods.values().stream().flatMap(Collection::stream).collect(Collectors.toSet());
 
             var classesToRetransform = Stream.concat(
-                    methodsToTransform.stream().map(MethodKey::clazz),
+                    Arrays.stream(instrumentation.getAllLoadedClasses()).filter(x -> methodsToTransform.stream().anyMatch(m -> m.className().equals(x.getName()))),
                     Arrays.stream(instrumentation.getAllLoadedClasses()).filter(x -> inheritanceMethodClasses.stream().anyMatch(base -> base.isAssignableFrom(x)))
             ).toArray(Class[]::new);
 
-            //System.out.println("classesToRetransform: " + Arrays.stream(classesToRetransform).map(Class::getSimpleName).collect(Collectors.joining(";")));
+            System.out.println("classesToRetransform: " + Arrays.stream(classesToRetransform).map(Class::getSimpleName).collect(Collectors.joining(";")));
 
             instrumentation.retransformClasses(classesToRetransform);
         } catch (Exception ex) {

@@ -19,6 +19,8 @@ public class DoubleInstrumentationCheckBenchmarks {
 
     private static final byte[] originalBytecodes = loadClassBytecodes(ClassToInstrument.class);
 
+    private static final String CLASS_NAME = ClassToInstrument.class.getName();
+
     static byte[] loadClassBytecodes(Class<?> clazz) {
         String internalName = Type.getInternalName(clazz);
         String fileName = "/" + internalName + ".class";
@@ -37,61 +39,61 @@ public class DoubleInstrumentationCheckBenchmarks {
 
     @Benchmark
     public byte[] noCheck() {
-        var classRewriter = new ClassRewriter(originalBytecodes);
+        var classRewriter = new ClassRewriter(CLASS_NAME, originalBytecodes);
         return classRewriter.instrumentMethodNoChecks(Set.of("methodToInstrument"));
     }
 
     @Benchmark
     public byte[] noCheckCalledTwice() {
-        var classRewriter = new ClassRewriter(originalBytecodes);
+        var classRewriter = new ClassRewriter(CLASS_NAME, originalBytecodes);
         var instrumentedBytes = classRewriter.instrumentMethodNoChecks(Set.of("methodToInstrument"));
 
-        classRewriter = new ClassRewriter(instrumentedBytes);
+        classRewriter = new ClassRewriter(CLASS_NAME, instrumentedBytes);
         return classRewriter.instrumentMethodNoChecks(Set.of("methodToInstrument"));
     }
 
     @Benchmark
     public byte[] checkWithAnnotation() {
-        var classRewriter = new ClassRewriter(originalBytecodes);
+        var classRewriter = new ClassRewriter(CLASS_NAME, originalBytecodes);
         return classRewriter.instrumentMethodWithAnnotation("methodToInstrument");
     }
 
     @Benchmark
     public byte[] checkWithAnnotationCalledTwice() {
-        var classRewriter = new ClassRewriter(originalBytecodes);
+        var classRewriter = new ClassRewriter(CLASS_NAME, originalBytecodes);
         var instrumentedBytes = classRewriter.instrumentMethodWithAnnotation("methodToInstrument");
 
-        classRewriter = new ClassRewriter(instrumentedBytes);
+        classRewriter = new ClassRewriter(CLASS_NAME, instrumentedBytes);
         return classRewriter.instrumentMethodWithAnnotation("methodToInstrument");
     }
 
     @Benchmark
     public byte[] completeCheckWithTwoPasses() {
-        var classRewriter = new ClassRewriter(originalBytecodes);
+        var classRewriter = new ClassRewriter(CLASS_NAME, originalBytecodes);
         return classRewriter.checkAndInstrumentMethodTwoPasses("methodToInstrument");
     }
 
     @Benchmark
     public byte[] completeCheckWithTwoPassesCalledTwice() {
-        var classRewriter = new ClassRewriter(originalBytecodes);
+        var classRewriter = new ClassRewriter(CLASS_NAME, originalBytecodes);
         var instrumentedBytes = classRewriter.checkAndInstrumentMethodTwoPasses("methodToInstrument");
 
-        classRewriter = new ClassRewriter(instrumentedBytes);
+        classRewriter = new ClassRewriter(CLASS_NAME, instrumentedBytes);
         return classRewriter.checkAndInstrumentMethodTwoPasses("methodToInstrument");
     }
 
     @Benchmark
     public byte[] completeCheckWithOnePass() {
-        var classRewriter = new ClassRewriter(originalBytecodes);
+        var classRewriter = new ClassRewriter(CLASS_NAME, originalBytecodes);
         return classRewriter.checkAndInstrumentMethodSinglePass("methodToInstrument");
     }
 
     @Benchmark
     public byte[] completeCheckWithOnePassCalledTwice() {
-        var classRewriter = new ClassRewriter(originalBytecodes);
+        var classRewriter = new ClassRewriter(CLASS_NAME, originalBytecodes);
         var instrumentedBytes = classRewriter.checkAndInstrumentMethodSinglePass("methodToInstrument");
 
-        classRewriter = new ClassRewriter(instrumentedBytes);
+        classRewriter = new ClassRewriter(CLASS_NAME, instrumentedBytes);
         return classRewriter.checkAndInstrumentMethodSinglePass("methodToInstrument");
     }
 }

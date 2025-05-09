@@ -10,19 +10,21 @@ import static org.objectweb.asm.Opcodes.*;
 
 public class ClassRewriter {
 
-    ClassReader reader;
-    ClassWriter writer;
+    private final String className;
+    private final ClassReader reader;
+    private final ClassWriter writer;
 
-    public ClassRewriter(byte[] contents) {
+    public ClassRewriter(String className, byte[] contents) {
+        this.className = className;
         //System.out.println("[Agent] Calling ASM");
 
         reader = new ClassReader(contents);
-        writer = new ClassWriter(reader, 0);//ClassWriter.COMPUTE_FRAMES | ClassWriter.COMPUTE_MAXS);
+        writer = new ClassWriter(reader, ClassWriter.COMPUTE_FRAMES | ClassWriter.COMPUTE_MAXS);
     }
 
     public byte[] instrumentMethodNoChecks(Set<String> methodNames) {
         //System.out.println("[Agent] Calling ASM instrumentMethod");
-        reader.accept(new InstrumentMethodClassVisitor(writer, methodNames), 0);
+        reader.accept(new InstrumentMethodClassVisitor(writer, className, methodNames), 0);
         return writer.toByteArray();
     }
 
@@ -37,7 +39,7 @@ public class ClassRewriter {
         var checker = new AlreadyInstrumentedMethodChecker(methodName);
         reader.accept(checker, 0);
         if (checker.instrumentationNeeded) {
-            reader.accept(new InstrumentMethodClassVisitor(writer, Set.of(methodName)), 0);
+            reader.accept(new InstrumentMethodClassVisitor(writer, className, Set.of(methodName)), 0);
             return writer.toByteArray();
         }
         return null;
