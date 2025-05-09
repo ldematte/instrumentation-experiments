@@ -32,8 +32,9 @@ public class InstrumentationAgent {
         }
 
         Set<MethodKey> classesToTransform = Set.of(
-                transformClass("java.lang.Shutdown", "exit", instrumentation),
-                transformClass("java.nio.file.Files", "exists", instrumentation)
+                transformClass("java.lang.Shutdown", "exit", instrumentation)
+                //transformClass("java.nio.file.Files", "exists", instrumentation)
+                //transformClass("java.io.File", "exists", instrumentation)
         );
         transform(classesToTransform, CheckerFactory.methodsToInterfaces, instrumentation);
         // sun.nio.fs.UnixNativeDispatcher
@@ -58,7 +59,7 @@ public class InstrumentationAgent {
 
             System.out.println("classesToRetransform: " + Arrays.stream(classesToRetransform).map(Class::getSimpleName).collect(Collectors.joining(";")));
 
-            instrumentation.retransformClasses(classesToRetransform);
+            //instrumentation.retransformClasses(classesToRetransform);
         } catch (Exception ex) {
             throw new RuntimeException("Retransform failed", ex);
         }

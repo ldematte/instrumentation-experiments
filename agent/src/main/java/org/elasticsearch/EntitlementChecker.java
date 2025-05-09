@@ -3,6 +3,13 @@ package org.elasticsearch;
 import java.util.Locale;
 
 public interface EntitlementChecker {
+
+    ScopedValue<Boolean> ALREADY_CHECKED = ScopedValue.newInstance();
+
+    static boolean isCurrentCallAlreadyChecked() {
+        return ALREADY_CHECKED.orElse(false);
+    }
+
     void check(Class<?> callerClass);
 
     // TODO: this should be auto-generated, maybe even directly on the impl?
