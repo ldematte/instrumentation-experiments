@@ -32,7 +32,8 @@ public class InstrumentationAgent {
         }
 
         Set<MethodKey> classesToTransform = Set.of(
-                transformClass("java.lang.Shutdown", "exit", instrumentation)
+                transformClass("java.lang.Shutdown", "exit", instrumentation),
+                transformClass("java.lang.Shutdown", "halt", instrumentation)
                 //transformClass("java.nio.file.Files", "exists", instrumentation)
                 //transformClass("java.io.File", "exists", instrumentation)
         );

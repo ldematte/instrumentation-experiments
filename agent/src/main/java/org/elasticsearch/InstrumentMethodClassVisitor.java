@@ -120,7 +120,9 @@ class InstrumentMethodClassVisitor extends ClassVisitor {
 
         @Override
         public void visitCode() {
-            deepCheckPrologue(this);
+            //deepCheckPrologue(this);
+            //prologue(this);
+            deepCheckPrologueWithStackFrames(this);
         }
 
         static void prologue(MethodVisitor mv) {
@@ -152,8 +154,77 @@ class InstrumentMethodClassVisitor extends ClassVisitor {
         }
 
         /**
-         * This will produce the following bytecode; it's largely equivalent to what you see happening in the
-         * {@link Example} class, but we take advantage of the fact we can generate MethodHandles directly with
+         * This will produce the following bytecode; it's largely equivalent to what you see happening in
+         * {@link Example#method_2} class, but we take advantage of the fact we can generate MethodHandles directly with
+         * ASM.
+         *     INVOKESTATIC org/elasticsearch/EntitlementCheckerHandle.instance ()Lorg/elasticsearch/EntitlementChecker;
+         *     INVOKESTATIC org/elasticsearch/Util.getCallerClass ()Ljava/lang/Class;
+         *     NEW org/elasticsearch/OriginalMethodRunnable
+         *     DUP
+         *     LDC java/lang/Shutdown.original_exit(I)V (6)
+         *     ILOAD 0
+         *     INVOKESPECIAL org/elasticsearch/OriginalMethodRunnable.<init> (Ljava/lang/invoke/MethodHandle;I)V
+         *     INVOKEINTERFACE org/elasticsearch/EntitlementChecker.check (Ljava/lang/Class;Ljava/lang/Runnable;)V (itf)
+         *     RETURN
+         */
+        void deepCheckPrologueWithStackFrames(MethodVisitor mv) {
+            Type checkerClassType = Type.getType(EntitlementChecker.class);
+            String handleClass = checkerClassType.getInternalName() + "Handle";
+            String getCheckerClassMethodDescriptor = Type.getMethodDescriptor(checkerClassType);
+
+            // pushEntitlementChecker
+            mv.visitMethodInsn(INVOKESTATIC, handleClass, "instance", getCheckerClassMethodDescriptor, false);
+            // pushCallerClass
+            mv.visitMethodInsn(
+                    INVOKESTATIC,
+                    Type.getInternalName(Util.class),
+                    "getCallerClass",
+                    Type.getMethodDescriptor(Type.getType(Class.class)),
+                    false
+            );
+
+            // Create the runnable:
+            // create the object
+            mv.visitTypeInsn(NEW, "org/elasticsearch/OriginalMethodRunnable");
+            mv.visitInsn(DUP);
+            // the MH to call
+            Handle originalMethodHandle = new Handle(
+                    H_INVOKESTATIC, // TODO: pass down the right one
+                    owner,
+                    "original_" + originalMethodName,
+                    originalMethodDescriptor,
+                    false // TODO: pass down the right one
+            );
+            mv.visitLdcInsn(originalMethodHandle);
+
+            // forward args to ctor
+            int localVarIndex = 0;
+            for (Type type : Type.getArgumentTypes(originalMethodDescriptor)) {
+                mv.visitVarInsn(type.getOpcode(Opcodes.ILOAD), localVarIndex);
+                localVarIndex += type.getSize();
+            }
+            // call ctor
+            mv.visitMethodInsn(INVOKESPECIAL, "org/elasticsearch/OriginalMethodRunnable", "<init>", "(Ljava/lang/invoke/MethodHandle;I)V");
+
+            // invokeInstrumentationMethod
+            mv.visitMethodInsn(
+                    INVOKEINTERFACE,
+                    checkerClassType.getInternalName(),
+                    "check",
+                    Type.getMethodDescriptor(
+                            Type.VOID_TYPE,
+                            Type.getType(Class.class),
+                            Type.getType(Runnable.class)
+                    ),
+                    true
+            );
+
+            mv.visitInsn(RETURN);
+        }
+
+        /**
+         * This will produce the following bytecode; it's largely equivalent to what you see happening in
+         * {@link Example#method}, but we take advantage of the fact we can generate MethodHandles directly with
          * ASM.
          *
          *     INVOKESTATIC org/elasticsearch/EntitlementChecker.isCurrentCallAlreadyChecked ()Z (itf)
@@ -175,8 +246,6 @@ class InstrumentMethodClassVisitor extends ClassVisitor {
          *     INVOKESTATIC java/lang/Shutdown.original_exit (I)V
          *    L1
          *     RETURN
-         *     MAXSTACK = 0
-         *     MAXLOCALS = 1
          *
          */
         void deepCheckPrologue(MethodVisitor mv) {

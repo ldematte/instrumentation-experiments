@@ -2,6 +2,8 @@ package org.elasticsearch;
 
 import java.util.Locale;
 
+import static java.lang.StackWalker.Option.RETAIN_CLASS_REFERENCE;
+
 public interface EntitlementChecker {
 
     ScopedValue<Boolean> ALREADY_CHECKED = ScopedValue.newInstance();
@@ -11,6 +13,11 @@ public interface EntitlementChecker {
     }
 
     void check(Class<?> callerClass);
+
+    /**
+     * Check variant that implements context-aware checks via stack frames
+     */
+    void check(Class<?> callerClass, Runnable originalMethodRunnable);
 
     // TODO: this should be auto-generated, maybe even directly on the impl?
     void nullCheck(Class<?> callerClass);
@@ -32,6 +39,30 @@ class EntitlementCheckerImpl implements  EntitlementChecker {
         if (allowed == false) {
             throw new SecurityException(classToValidate + " not allowed");
         }
+    }
+
+    @Override
+    public void check(Class<?> callerClass, Runnable originalMethodRunnable) {
+        var classToValidate = findClassToValidate(callerClass);
+        System.out.printf(
+                Locale.ROOT,
+                "Caller class: %s in %s%n",
+                classToValidate.getName(),
+                classToValidate.getModule()
+        );
+
+        var alreadyChecked = StackWalker.getInstance(RETAIN_CLASS_REFERENCE)
+                .walk(frames -> frames
+                        .skip(2) // Skip this method and its caller
+                        .filter(f -> f.getDeclaringClass().equals(EntitlementCheckerImpl.class) && f.getMethodName().equals("check"))
+                ).findFirst().isPresent();
+
+        if (alreadyChecked == false) {
+            if (allowed == false) {
+                throw new SecurityException(classToValidate + " not allowed");
+            }
+        }
+        originalMethodRunnable.run();
     }
 
     @Override
